@@ -56,12 +56,47 @@ def row_text_player(r):
     '''
     pass
 
-def embed_games():
+def embed_games(cx):
     '''
     '''
-    pass
+    cx.execute(text("ALTER TABLE IF EXISTS game_details ADD COLUMN IF NOT EXISTS game_embedding vector(768);"))
+    cx.execute(text("CREATE INDEX IF NOT EXISTS idx_game_details_embedding ON game_details USING hnsw (game_embedding vector_cosine_ops);"))
+    
+    df = pd.read_sql("""
+        SELECT
+        FROM game_details
+        JOIN             
+    """, cx)
+    
+    for _, r in df.iterrows():
+        vec = ollama_embed(EMBED_MODEL, row_text_game(r))
+        cx.execute(text("""
+            UPDATE game_details 
+            SET game_embedding = :v 
+            WHERE game_id = :gid
+        """), {"v": vec, "gid": int(r.game_id)})
+        
+    print(f"Finished Game Embeddings: {len(df)} Rows Updated")
 
-def embed_players():
+def embed_players(cx):
     '''
     '''
-    pass
+    cx.execute(text("ALTER TABLE IF EXISTS player_box_scores ADD COLUMN IF NOT EXISTS player_embedding vector(768);"))
+    cx.execute(text("CREATE INDEX IF NOT EXISTS idx_player_box_scores_embedding ON player_box_scores USING hnsw (player_embedding vector_cosine_ops);"))
+    
+    df = pd.read_sql("""
+        SELECT
+        FROM player_box_scores
+        JOIN             
+    """, cx)
+    
+    for _, r in df.iterrows():
+        vec = ollama_embed(EMBED_MODEL, row_text_player(r))
+        cx.execute(text("""
+            UPDATE player_box_scores 
+            SET player_embedding = :v 
+            WHERE game_id = :gid AND player_id = :pid
+        """), {"v": vec, "gid": int(r.game_id), "pid": int(r.player_id)})
+        
+    print(f"Finished Player Embeddings: {len(df)} Rows Updated")
+        
