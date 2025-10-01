@@ -24,7 +24,6 @@ def row_text(r):
         f"away_points:{ap} | "
     )
 
-
 def main():
     print("Starting Embedding Process")
     eng = sa.create_engine(DB_DSN)
@@ -43,5 +42,26 @@ def main():
     print(f"Finished Embeddings: {len(df)} Rows Updated")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
+def row_text_game(r):
+    '''
+    '''
+    pass
+
+
+def row_text_player(r):
+    '''
+    '''
+    pass
+
+def embed_games():
+    '''
+    '''
+    pass
+
+def embed_players():
+    '''
+    '''
+    pass
