@@ -48,13 +48,29 @@ def main():
 def row_text_game(r):
     '''
     '''
-    pass
+    ts = pd.to_datetime(r.game_timestamp, utc=True)
+    date = ts.strftime('%Y-%m-%d')
+    season = int(r.season)
+    home = (r.home_team_name)
+    away = (r.away_team_name)
+    hp = int(r.home_points)
+    ap = int(r.away_points)
+    winner = (r.winner)
+    
+    return(f"Game Record: In the {season} season on {date}, the {winner} won {away}@{home} {ap}-{hp}")
 
 
 def row_text_player(r):
     '''
     '''
-    pass
+    ts = pd.to_datetime(r.game_timestamp, utc=True)
+    date = ts.strftime('%Y-%m-%d')
+    season = int(r.season)
+    first = (r.first_name)
+    last = (r.last_name)
+    
+    
+    return(f"Player Record: {first} {last} ")
 
 def embed_games(cx):
     '''
