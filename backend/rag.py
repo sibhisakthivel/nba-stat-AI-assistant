@@ -109,9 +109,19 @@ def answer(question, rows):
     with open(TEMPLATE_PATH, encoding="utf-8") as f:
         answers_template = json.load(f)
     ctx = build_context(rows)
+    # prompt = (
+    #     f"Use this format to answer the questions:\n{json.dumps(answers_template)}\n"
+    #     f"Answer using only this context. Cite game_ids used.\n"
+    #     f"Context:\n{ctx}\n\nQ: {question}\nA:"
+    # )
     prompt = (
-        f"Use this format to answer the questions:\n{json.dumps(answers_template)}\n"
-        f"Answer using only this context. Cite game_ids used.\n"
+        f"Follow this format exactly to answer the questions:\n{json.dumps(answers_template)}\n"
+        f"Only use the information provided below in 'Context', don't use outside knowledge.\n"
+        f"If a field cannot be determined, set it to null (do not guess).\n"
+        f"Every row in 'Context' must be cited in 'Evidence':\n"
+        f"- If a 'Context' row start with 'Game record:', cite the table as 'game_details' in 'Evidence'\n"
+        f"- If a 'Context' row start with 'Player record:', cite the table as 'player_box_scores' in 'Evidence'\n"
+        f"Output must be valid JSON only (no extra text).\n"
         f"Context:\n{ctx}\n\nQ: {question}\nA:"
     )
     return ollama_generate(LLM_MODEL, prompt)
