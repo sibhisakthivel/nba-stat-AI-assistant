@@ -49,28 +49,66 @@ def row_text_game(r):
     '''
     '''
     ts = pd.to_datetime(r.game_timestamp, utc=True)
-    date = ts.strftime('%Y-%m-%d')
+    date_long = ()
+    date_iso = ()
+    date_slash = ('%m/%d/%Y')
+    date_dash = ts.strftime('%Y-%m-%d')
     season = int(r.season)
-    home = (r.home_team_name)
-    away = (r.away_team_name)
-    hp = int(r.home_points)
-    ap = int(r.away_points)
+    season_span = ()
+    home_city = ()
+    home_name = (r.home_team_name)
+    home_abbrev = ()
+    away_city = ()
+    away_name = (r.away_team_name)
+    away_abbrev = ()
     winner = (r.winner)
+    win_pts = max()
+    lose_pts = min()
     
-    return(f"Game Record: In the {season} season on {date}, the {winner} won {away}@{home} {ap}-{hp}")
+    return("Game Record | "
+           f"{date_long}| {date_iso} | {date_slash} | {date_dash} | "
+           f"{season} | {season_span} | "
+           f"Home: {home_city} {home_name} ({home_abbrev}) | "
+           f"Away: {away_city} {away_name} ({away_abbrev}) | "
+           f"Matchup: {away_abbrev}@{home_abbrev} | "
+           f"Score: {win_pts} - {lose_pts} | "
+           f"Winner: {winner} victory")
 
 
 def row_text_player(r):
     '''
     '''
+    name = f"{r.first_name} {r.last_name}"
+    name_ascii = ()
     ts = pd.to_datetime(r.game_timestamp, utc=True)
-    date = ts.strftime('%Y-%m-%d')
+    date_long = ()
+    date_iso = ()
+    date_slash = ('%m/%d/%Y')
+    date_dash = ts.strftime('%Y-%m-%d')
     season = int(r.season)
-    first = (r.first_name)
-    last = (r.last_name)
+    season_span = ()
+    team_city = ()
+    team_name = ()
+    team_abbrev = ()
+    opp_city = ()
+    opp_name = ()
+    opp_abbrev = ()
+    home_abbrev = ()
+    away_abbrev = ()
+    pts = ()
+    reb = ()
+    ast = ()
+    td = ()
+    dd = ()
     
-    
-    return(f"Player Record: {first} {last} ")
+    return(f"Player Record | {name} | {name_ascii} | "
+           f"{date_long}| {date_iso} | {date_slash} | {date_dash} | "
+           f"{season} | {season_span} | "
+           f"Team: {team_city} {team_name} ({team_abbrev}) | "
+           f"Opponent: {opp_city} {opp_name} ({opp_abbrev}) | "
+           f"Matchup: {away_abbrev}@{home_abbrev} | {team_name} vs {opp_name} | "
+           f"Points: {pts} | Rebounds: {reb} | Assists: {ast} | "
+           f"Triple-Double: {td} | Double-Double: {dd}")
 
 def embed_games(cx):
     '''
