@@ -114,7 +114,7 @@ def embed_games(cx):
     '''
     '''
     cx.execute(text("ALTER TABLE IF EXISTS game_details ADD COLUMN IF NOT EXISTS game_embedding vector(768);"))
-    cx.execute(text("CREATE INDEX IF NOT EXISTS idx_game_details_embedding ON game_details USING hnsw (game_embedding vector_cosine_ops);"))
+    cx.execute(text("CREATE INDEX IF NOT EXISTS idx_game_details_game_embedding ON game_details USING hnsw (game_embedding vector_cosine_ops);"))
     
     df = pd.read_sql("""
         SELECT 
@@ -140,11 +140,11 @@ def embed_players(cx):
     '''
     '''
     cx.execute(text("ALTER TABLE IF EXISTS player_box_scores ADD COLUMN IF NOT EXISTS player_embedding vector(768);"))
-    cx.execute(text("CREATE INDEX IF NOT EXISTS idx_player_box_scores_embedding ON player_box_scores USING hnsw (player_embedding vector_cosine_ops);"))
+    cx.execute(text("CREATE INDEX IF NOT EXISTS idx_player_box_scores_player_embedding ON player_box_scores USING hnsw (player_embedding vector_cosine_ops);"))
     
     df = pd.read_sql("""
         SELECT 
-            pbs.game_id, g.game_timestamp, g.season, p.first_name, p.last_name,
+            pbs.game_id, g.game_timestamp, g.season, p.first_name, p.last_name, pbs.person_id, 
             t.team_city AS team_city, t.team_name AS team_name, t.team_abbrev AS team_abbrev,
             opp.team_city AS opp_city, opp.team_name AS opp_name, opp.team_abbrev AS opp_abbrev,
             g.home_team_id, g.away_team_id, h.team_abbrev AS home_abbrev, a.team_abbrev AS away_abbrev,
@@ -166,8 +166,8 @@ def embed_players(cx):
         cx.execute(text("""
             UPDATE player_box_scores 
             SET player_embedding = :v 
-            WHERE game_id = :gid AND player_id = :pid
-        """), {"v": vec, "gid": int(r.game_id), "pid": int(r.player_id)})
+            WHERE game_id = :gid AND person_id = :pid
+        """), {"v": vec, "gid": int(r.game_id), "pid": int(r.person_id)})
         
     print(f"Finished Player Embeddings: {len(df)} Rows Updated")
         
