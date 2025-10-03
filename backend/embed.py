@@ -57,11 +57,11 @@ def row_text_game(r):
     home_city = (r.home_city)
     home_name = (r.home_team_name)
     home_abbrev = (r.home_abbrev)
-    home_pts = int(r.home_pts)
+    home_pts = int(r.home_points)
     away_city = (r.away_city)
     away_name = (r.away_team_name)
     away_abbrev = (r.away_abbrev)
-    away_pts = int(r.away_pts)
+    away_pts = int(r.away_points)
     
     if (r.winning_team_id == r.home_team_id):
         winner = f"{r.home_city} {r.home_team_name} ({r.home_abbrev})"
@@ -100,7 +100,7 @@ def row_text_player(r):
     reb = int(r.oreb + r.dreb)
     ast = int(r.assists)
     td = ("Triple-Double" if sum([pts >= 10, reb >= 10, ast >= 10]) >= 3 else "") 
-    dd = ("Double-Double" if sum([pts >= 10, reb >= 10, ast >= 10]) >= 2 else "")
+    dd = ("Double-Double" if sum([pts >= 10, reb >= 10, ast >= 10]) == 2 else "")
     
     return(f"{name} | {name_ascii} | "
            f"{date_long}| {date_slash} | {date_dash} | "
@@ -150,7 +150,7 @@ def embed_players(cx):
             g.home_team_id, g.away_team_id, h.team_abbrev AS home_abbrev, a.team_abbrev AS away_abbrev,
             pbs.points, pbs.oreb, pbs.dreb, pbs.assists
         FROM player_box_scores pbs
-        JOIN players p ON pbs.person_id = p.person_id
+        JOIN players p ON pbs.person_id = p.player_id
         JOIN game_details g ON pbs.game_id = g.game_id
         JOIN teams t ON pbs.team_id = t.team_id
         JOIN teams opp ON (
