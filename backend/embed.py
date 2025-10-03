@@ -145,9 +145,9 @@ def embed_players(cx):
     df = pd.read_sql("""
         SELECT 
             pbs.game_id, g.game_timestamp, g.season, p.first_name, p.last_name, pbs.person_id, 
-            t.team_city AS team_city, t.team_name AS team_name, t.team_abbrev AS team_abbrev,
-            opp.team_city AS opp_city, opp.team_name AS opp_name, opp.team_abbrev AS opp_abbrev,
-            g.home_team_id, g.away_team_id, h.team_abbrev AS home_abbrev, a.team_abbrev AS away_abbrev,
+            t.city AS team_city, t.name AS team_name, t.abbreviation AS team_abbrev,
+            opp.city AS opp_city, opp.name AS opp_name, opp.abbreviation AS opp_abbrev,
+            g.home_team_id, g.away_team_id, h.abbreviation AS home_abbrev, a.abbreviation AS away_abbrev,
             pbs.points, pbs.oreb, pbs.dreb, pbs.assists
         FROM player_box_scores pbs
         JOIN players p ON pbs.person_id = p.player_id
