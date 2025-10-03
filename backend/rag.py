@@ -115,12 +115,15 @@ def answer(question, rows, result_format):
     #     f"Context:\n{ctx}\n\nQ: {question}\nA:"
     # )
     prompt = (
-        f"Return ONLY a JSON object matching this schema (no extra keys, no prose):\n{schema_json}\n"
-        f"Only use the information provided below in 'Context', don't use outside knowledge.\n"
-        f"If a field cannot be determined, set it to null (do not guess).\n"
-        f"Output must be valid JSON only (no extra text).\n"
-        f"Context:\n{ctx}\n\nQ: {question}\nA:"
-    )
+    f"Return ONLY a JSON object matching this schema (no extra keys, no prose):\n{schema_json}\n"
+    "Rules:\n"
+    "- Use ONLY the 'Context' provided below; do not use outside knowledge.\n"
+    "- If a field cannot be determined from Context, set it to null.\n"
+    "- Holidays map to calendar dates (e.g., Christmas = December 25 of that year).\n"
+    "- 'Season' refers to the start year; games may occur in the following calendar year.\n"
+    "Output must be valid JSON only (no extra text).\n\n"
+    f"Context:\n{ctx}\n\nQ: {question}\nA:")
+    
     return ollama_generate(LLM_MODEL, prompt)
 
 
