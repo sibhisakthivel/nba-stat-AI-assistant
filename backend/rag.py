@@ -29,14 +29,13 @@ def retrieve(cx, qvec, k=5):
             1 - (g.game_embedding <=> (:q)::vector) AS score, 'game_details' AS source
     FROM game_details g
     JOIN teams h ON g.home_team_id = h.team_id
-    JOIN team a ON g.away_team_id = a.team_id
-    ORDER BY score
+    JOIN teams a ON g.away_team_id = a.team_id
+    ORDER BY g.game_embedding <-> (:q)::vector
     LIMIT :k
     """
     
     player_sql = """
-    SELECT pbs.person_id, p.first_name, p.last_name
-            t.name AS team_name, t.city AS team_city,
+    SELECT pbs.person_id, pbs.game_id, p.first_name, p.last_name, t.name AS team_name, t.city AS team_city,
             pbs.points, pbs.offensive_reb AS oreb, pbs.defensive_reb AS dreb, pbs.assists,
             pbs.seconds, pbs.fg2_made, pbs.fg2_attempted, pbs.fg3_made, pbs.fg3_attempted,
             pbs.ft_attempted, pbs.ft_made, pbs.steals, pbs.blocks, pbs.turnovers, 
@@ -45,7 +44,7 @@ def retrieve(cx, qvec, k=5):
     FROM player_box_scores pbs
     JOIN players p ON pbs.person_id = p.player_id
     JOIN teams t ON pbs.team_id = t.team_id
-    ORDER BY score
+    ORDER BY pbs.player_embedding <-> (:q)::vector
     LIMIT :k
     """
         
@@ -104,23 +103,21 @@ def build_context(rows):
 
 
 # Feel free to edit this prompt, but ensure it still uses context directly from the embeddings
-def answer(question, rows):
-    # Use answers template in the response
-    with open(TEMPLATE_PATH, encoding="utf-8") as f:
-        answers_template = json.load(f)
+def answer(question, rows, result_format):
+    # # Use answers template in the response
+    # with open(TEMPLATE_PATH, encoding="utf-8") as f:
+    #     answers_template = json.load(f)
     ctx = build_context(rows)
+    schema_json = json.dumps(result_format, ensure_ascii=False)
     # prompt = (
     #     f"Use this format to answer the questions:\n{json.dumps(answers_template)}\n"
     #     f"Answer using only this context. Cite game_ids used.\n"
     #     f"Context:\n{ctx}\n\nQ: {question}\nA:"
     # )
     prompt = (
-        f"Follow this format exactly to answer the questions:\n{json.dumps(answers_template)}\n"
+        f"Return ONLY a JSON object matching this schema (no extra keys, no prose):\n{schema_json}\n"
         f"Only use the information provided below in 'Context', don't use outside knowledge.\n"
         f"If a field cannot be determined, set it to null (do not guess).\n"
-        f"Every row in 'Context' must be cited in 'Evidence':\n"
-        f"- If a 'Context' row start with 'Game record:', cite the table as 'game_details' in 'Evidence'\n"
-        f"- If a 'Context' row start with 'Player record:', cite the table as 'player_box_scores' in 'Evidence'\n"
         f"Output must be valid JSON only (no extra text).\n"
         f"Context:\n{ctx}\n\nQ: {question}\nA:"
     )
@@ -131,15 +128,35 @@ if __name__ == "__main__":
     eng = sa.create_engine(DB_DSN)
     with open(QUESTIONS_PATH, encoding="utf-8") as f:
         qs = json.load(f)
+    with open(TEMPLATE_PATH, encoding="utf-8") as f:
+        answers_template = json.load(f)
     outs = []
     with eng.begin() as cx:
-        for q in qs:
+        for id, q in enumerate(qs, start=1):
             qvec = ollama_embed(EMBED_MODEL, q["question"])
             rows = retrieve(cx, qvec, 5)
-            ans = answer(q["question"], rows)
+            result_format = answers_template[id - 1]["result"]
+            ans = answer(q["question"], rows, result_format)
+            result = json.loads(ans)
+            
+            ev = []
+            for r in rows:
+                if r["source"] == "game_details":
+                    ev.append({
+                        "table": "game_details",
+                        "id": int(r["game_id"])
+                    })
+                elif r["source"] == "player_box_scores":
+                    ev.append({
+                        "table": "player_box_scores",
+                        "id": f"{int(r['person_id'])}_{int(r['game_id'])}"
+                    })
+
             outs.append({
-                "answer": ans,
-                "evidence": [{"table": "game_details", "id": int(r["game_id"])} for r in rows],
+                "id": id,
+                "result": result,
+                "evidence": ev,
             })
+            
     with open(ANSWERS_PATH, "w", encoding="utf-8") as f:
         json.dump(outs, f, ensure_ascii=False, indent=2)
