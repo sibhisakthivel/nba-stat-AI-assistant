@@ -148,7 +148,7 @@ def embed_players(cx):
             t.city AS team_city, t.name AS team_name, t.abbreviation AS team_abbrev,
             opp.city AS opp_city, opp.name AS opp_name, opp.abbreviation AS opp_abbrev,
             g.home_team_id, g.away_team_id, h.abbreviation AS home_abbrev, a.abbreviation AS away_abbrev,
-            pbs.points, pbs.oreb, pbs.dreb, pbs.assists
+            pbs.points, pbs.offensive_reb AS oreb, pbs.defensive_reb AS dreb, pbs.assists
         FROM player_box_scores pbs
         JOIN players p ON pbs.person_id = p.player_id
         JOIN game_details g ON pbs.game_id = g.game_id
