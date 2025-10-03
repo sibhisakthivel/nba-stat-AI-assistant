@@ -113,8 +113,8 @@ def row_text_player(r):
 def embed_games(cx):
     '''
     '''
-    cx.execute(text("ALTER TABLE IF EXISTS game_details ADD COLUMN IF NOT EXISTS game_embedding vector(768);"))
-    cx.execute(text("CREATE INDEX IF NOT EXISTS idx_game_details_game_embedding ON game_details USING hnsw (game_embedding vector_cosine_ops);"))
+    # cx.execute(text("ALTER TABLE IF EXISTS game_details ADD COLUMN IF NOT EXISTS game_embedding vector(768);"))
+    # cx.execute(text("CREATE INDEX IF NOT EXISTS idx_game_details_game_embedding ON game_details USING hnsw (game_embedding vector_cosine_ops);"))
     
     df = pd.read_sql("""
         SELECT 
@@ -124,6 +124,8 @@ def embed_games(cx):
         FROM game_details g
         JOIN teams h ON g.home_team_id = h.team_id
         JOIN teams a ON g.away_team_id = a.team_id
+        WHERE g.game_embedding IS NULL
+        LIMIT 5
     """, cx)
     
     for _, r in df.iterrows():
@@ -131,7 +133,7 @@ def embed_games(cx):
         cx.execute(text("""
             UPDATE game_details 
             SET game_embedding = :v 
-            WHERE game_id = :gid
+            WHERE game_id = :gid AND game_embedding IS NULL
         """), {"v": vec, "gid": int(r.game_id)})
         
     print(f"Finished Game Embeddings: {len(df)} Rows Updated")
@@ -139,8 +141,9 @@ def embed_games(cx):
 def embed_players(cx):
     '''
     '''
-    cx.execute(text("ALTER TABLE IF EXISTS player_box_scores ADD COLUMN IF NOT EXISTS player_embedding vector(768);"))
-    cx.execute(text("CREATE INDEX IF NOT EXISTS idx_player_box_scores_player_embedding ON player_box_scores USING hnsw (player_embedding vector_cosine_ops);"))
+    print("starting embed_players")
+    # cx.execute(text("ALTER TABLE IF EXISTS player_box_scores ADD COLUMN IF NOT EXISTS player_embedding vector(768);"))
+    # cx.execute(text("CREATE INDEX IF NOT EXISTS idx_player_box_scores_player_embedding ON player_box_scores USING hnsw (player_embedding vector_cosine_ops);"))
     
     df = pd.read_sql("""
         SELECT 
@@ -159,16 +162,23 @@ def embed_players(cx):
         )
         JOIN teams h ON g.home_team_id = h.team_id
         JOIN teams a ON g.away_team_id = a.team_id
+        WHERE pbs.player_embedding IS NULL
     """, cx)
     
-    for _, r in df.iterrows():
+    total = len(df)
+    print(f"{total} player rows need embedding")
+    
+    for i, (_, r) in enumerate(df.iterrows(), start=1):
         vec = ollama_embed(EMBED_MODEL, row_text_player(r))
         cx.execute(text("""
             UPDATE player_box_scores 
             SET player_embedding = :v 
-            WHERE game_id = :gid AND person_id = :pid
+            WHERE game_id = :gid AND person_id = :pid AND player_embedding IS NULL
         """), {"v": vec, "gid": int(r.game_id), "pid": int(r.person_id)})
         
+        if i % 50 == 0 or i == total:  # adjust 50 to whatever interval you like
+            print(f"Progress: {i}/{total} rows embedded ({total - i} remaining)")
+            
     print(f"Finished Player Embeddings: {len(df)} Rows Updated")
         
 
@@ -177,7 +187,7 @@ def main():
     eng = sa.create_engine(DB_DSN)
     with eng.begin() as cx:
         cx.execute(text('ALTER DATABASE nba REFRESH COLLATION VERSION'))
-        embed_games(cx)
+        # embed_games(cx)
         embed_players(cx)
     print("Finished Embedding Process")
 
