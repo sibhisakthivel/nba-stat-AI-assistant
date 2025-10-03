@@ -81,26 +81,26 @@ def row_text_player(r):
     '''
     '''
     name = f"{r.first_name} {r.last_name}"
-    name_ascii = ()
+    name_ascii = name.encode("ascii", "ignore").decode()
     ts = pd.to_datetime(r.game_timestamp, utc=True)
     date_long = ts.strftime('%B %d, %Y')
     date_slash =  ts.strftime('%m/%d/%Y')
     date_dash = ts.strftime('%Y-%m-%d')
     season = int(r.season)
     season_span = f"{season}-{str(season+1)[-2:]}"
-    team_city = ()
-    team_name = ()
-    team_abbrev = ()
-    opp_city = ()
-    opp_name = ()
-    opp_abbrev = ()
-    home_abbrev = ()
-    away_abbrev = ()
-    pts = int()
-    reb = int()
-    ast = int()
-    td = ()
-    dd = ()
+    team_city = (r.team_city)
+    team_name = (r.team_name)
+    team_abbrev = (r.team_abbrev)
+    opp_city = (r.opp_city)
+    opp_name = (r.opp_name)
+    opp_abbrev = (r.opp_abbrev)
+    home_abbrev = (r.home_abbrev)
+    away_abbrev = (r.away_abbrev)
+    pts = int(r.points)
+    reb = int(r.oreb + r.dreb)
+    ast = int(r.assists)
+    td = ("Triple-Double" if sum([pts >= 10, reb >= 10, ast >= 10]) >= 3 else "") 
+    dd = ("Double-Double" if sum([pts >= 10, reb >= 10, ast >= 10]) >= 2 else "")
     
     return(f"{name} | {name_ascii} | "
            f"{date_long}| {date_slash} | {date_dash} | "
@@ -108,8 +108,7 @@ def row_text_player(r):
            f"Team: {team_city} {team_name} ({team_abbrev}) | "
            f"Opponent: {opp_city} {opp_name} ({opp_abbrev}) | "
            f"Matchup: {away_abbrev}@{home_abbrev} | {team_city} {team_name} vs  {opp_city} {opp_name} | "
-           f"Points: {pts} | Rebounds: {reb} | Assists: {ast} | "
-           f"Triple-Double: {td} | Double-Double: {dd}")
+           f"Points: {pts} | Rebounds: {reb} | Assists: {ast} | {td} | {dd}")
 
 def embed_games(cx):
     '''
@@ -144,9 +143,22 @@ def embed_players(cx):
     cx.execute(text("CREATE INDEX IF NOT EXISTS idx_player_box_scores_embedding ON player_box_scores USING hnsw (player_embedding vector_cosine_ops);"))
     
     df = pd.read_sql("""
-        SELECT
-        FROM player_box_scores
-        JOIN             
+        SELECT 
+            pbs.game_id, g.game_timestamp, g.season, p.first_name, p.last_name,
+            t.team_city AS team_city, t.team_name AS team_name, t.team_abbrev AS team_abbrev,
+            opp.team_city AS opp_city, opp.team_name AS opp_name, opp.team_abbrev AS opp_abbrev,
+            g.home_team_id, g.away_team_id, h.team_abbrev AS home_abbrev, a.team_abbrev AS away_abbrev,
+            pbs.points, pbs.oreb, pbs.dreb, pbs.assists
+        FROM player_box_scores pbs
+        JOIN players p ON pbs.person_id = p.person_id
+        JOIN game_details g ON pbs.game_id = g.game_id
+        JOIN teams t ON pbs.team_id = t.team_id
+        JOIN teams opp ON (
+            (g.home_team_id = opp.team_id AND pbs.team_id != g.home_team_id) OR
+            (g.away_team_id = opp.team_id AND pbs.team_id != g.away_team_id)
+        )
+        JOIN teams h ON g.home_team_id = h.team_id
+        JOIN teams a ON g.away_team_id = a.team_id
     """, cx)
     
     for _, r in df.iterrows():
