@@ -21,31 +21,55 @@ class Q(BaseModel):
     question: str
 
 
-@app.post("/api/chat")
-def answer(q: Q):
-    print('Received question')
-    qvec = ollama_embed(EMBED_MODEL, q.question)
-    with eng.begin() as cx:
-    #    rows = cx.execute(
-    #         text(
-    #             "SELECT game_id, game_timestamp, home_team_id, away_team_id, home_points, away_points "
-    #             "FROM game_details ORDER BY game_embedding <-> :q LIMIT :k"
-    #         ),
-    #         {"q": qvec, "k": 5},
-    #     ).mappings().all()
-        rows = cx.execute(
-            text(
-                "SELECT game_id, game_timestamp, home_team_id, away_team_id, home_points, away_points "
-                f"FROM game_details ORDER BY game_embedding <-> ARRAY{qvec}::vector LIMIT :k"
-            ),
-            {"k": 5},
-        ).mappings().all()
-    ctx = "\n".join([str(dict(r)) for r in rows])
-    resp = ollama_generate(LLM_MODEL, f"Use context only:\n{ctx}\n\nQ:{q.question}\nA:")
-    return {
-            "answer": resp,
-            "evidence": [{"table": "game_details", "id": int(r["game_id"])} for r in rows],
-        }
+# @app.post("/api/chat")
+# def answer(q: Q):
+#     print('Received question')
+#     qvec = ollama_embed(EMBED_MODEL, q.question)
+#     with eng.begin() as cx:
+#     #    rows = cx.execute(
+#     #         text(
+#     #             "SELECT game_id, game_timestamp, home_team_id, away_team_id, home_points, away_points "
+#     #             "FROM game_details ORDER BY game_embedding <-> :q LIMIT :k"
+#     #         ),
+#     #         {"q": qvec, "k": 5},
+#     #     ).mappings().all()
+#         rows = cx.execute(
+#             text(
+#                 "SELECT game_id, game_timestamp, home_team_id, away_team_id, home_points, away_points "
+#                 f"FROM game_details ORDER BY game_embedding <-> ARRAY{qvec}::vector LIMIT :k"
+#             ),
+#             {"k": 5},
+#         ).mappings().all()
+#     ctx = "\n".join([str(dict(r)) for r in rows])
+#     resp = ollama_generate(LLM_MODEL, f"Use context only:\n{ctx}\n\nQ:{q.question}\nA:")
+#     return {
+#             "answer": resp,
+#             "evidence": [{"table": "game_details", "id": int(r["game_id"])} for r in rows],
+#         }
+
+
+def game_context(r):
+    '''
+    '''
+    return(
+        f"Game record: Game {r['game_id']} on {r['game_timestamp']}, {r['season']} season "
+        f"{r['home_city']} {r['home_name']} ({r['home_abbrev']}) {r['home_points']} - {r['away_points']} {r['away_city']} {r['away_name']} ({r['away_abbrev']}) " 
+    )
+
+
+def player_context(r):
+    '''
+    '''
+    return(
+        f"Player record: Game {r['game_id']}, {r['first_name']} {r['last_name']} scored "
+        f"{r['points']} points, {r['oreb']} offensive rebounds, {r['dreb']} defensive rebounds, "
+        f"{r['assists']} assists, played {r['seconds']} seconds, {r['fg2_made']} 2-point field goals made, " 
+        f"{r['fg2_attempted']} 2-point field goals attempted, {r['fg3_made']} 3 pointers made, "
+        f"{r['fg3_attempted']} 3 pointers attempted, {r['ft_made']} free throws made, "
+        f"{r['ft_attempted']} free throws attempted, {r['steals']} steals, {r['blocks']} blocks, "
+        f"{r['turnovers']} turnovers, {r['defensive_fouls']} defensive fouls, {r['offensive_fouls']} offensive fouls"
+    )
+
 
 @app.post("/api/chat")
 def answer(q: Q):
@@ -54,7 +78,7 @@ def answer(q: Q):
     qvec = ollama_embed(EMBED_MODEL, q.question)
     with eng.begin() as cx:
         
-        game_sql = cx.execute(
+        game_rows = cx.execute(
             text(
                 "SELECT g.game_id, g.season, g.game_timestamp, "
                         "h.name AS home_name, h.city AS home_city, h.abbreviation AS home_abbrev, g.home_points, "
@@ -69,7 +93,7 @@ def answer(q: Q):
             {"k": 5}, 
         ).mappings().all()
     
-        player_sql = cx.execute(
+        player_rows = cx.execute(
             text(
                 "SELECT pbs.person_id, pbs.game_id, p.first_name, p.last_name, t.name AS team_name, t.city AS team_city, "
                     "pbs.points, pbs.offensive_reb AS oreb, pbs.defensive_reb AS dreb, pbs.assists, "
@@ -85,4 +109,29 @@ def answer(q: Q):
             ),
             {"k": 5}, 
         ).mappings().all()
+    
+    game_ctx = "\n".join([game_context(r) for r in game_rows])
+    player_ctx = "\n".join([player_context(r) for r in player_rows])
+    ctx = f"=== Games ===\n{game_ctx}\n\n=== Players ===\n{player_ctx}"
+    
+    prompt = (
+        f"Use context only:\n{ctx}\n\nQ:{q.question}\nA:")
+    resp = ollama_generate(LLM_MODEL, prompt)
+    
+    ev = []
+    for r in game_rows:
+        ev.append({
+            "table": "game_details",
+            "id": int(r["game_id"])
+        })
+    for r in player_rows:
+        ev.append({
+            "table": "player_box_scores", 
+            "id": f"{int(r['person_id'])}_{int(r['game_id'])}"
+        })
+        
+    return {
+            "answer": resp,
+            "evidence": ev,
+        }
     
