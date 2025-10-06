@@ -1,12 +1,40 @@
 <div class="app-container">
   <h1>AI Engineering Sandbox</h1>
-  <div class="chat-container">
-    <div class="messages">
-      <div *ngFor="let msg of messages" [ngClass]="msg.sender">{{ msg.text }}</div>
+  <div class="main-container">
+    <div class="chat-container">
+      <div class="messages">
+        <div *ngFor="let msg of messages" class="message-wrapper" [ngClass]="msg.sender">
+          <div class="message-bubble">
+            {{ msg.text }}
+          </div>
+        </div>
+      </div>
+      <form (ngSubmit)="sendMessage()" class="input-area">
+        <input [(ngModel)]="userInput" name="userInput" placeholder="Type a message..." />
+        <button type="submit">Send</button>
+      </form>
     </div>
-    <form (ngSubmit)="sendMessage()" class="input-area">
-      <input [(ngModel)]="userInput" name="userInput" placeholder="Type a message..." />
-      <button type="submit">Send</button>
-    </form>
+    <div class="evidence-panel">
+      <h3>Evidence</h3>
+      <div class="evidence-list">
+        <ng-container *ngFor="let msg of messages; let i = index">
+          <div *ngIf="msg.sender === 'bot' && msg.evidence && msg.evidence.length > 0"
+               class="evidence-item"
+               [class.expanded]="expandedEvidence[i]"
+               (click)="toggleEvidence(i)">
+            <div class="evidence-header">
+              <span class="evidence-title">Game {{ msg.evidence[0].id }}</span>
+              <span class="evidence-arrow">{{ expandedEvidence[i] ? '▼' : '▶' }}</span>
+            </div>
+            <div *ngIf="expandedEvidence[i]" class="evidence-details">
+              <div *ngFor="let ev of msg.evidence" class="evidence-entry">
+                <span class="evidence-type">{{ ev.table }}</span>
+                <span class="evidence-id">ID: {{ ev.id }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
   </div>
 </div>
