@@ -1,9 +1,38 @@
 <div class="app-container">
   <h1>AI Engineering Sandbox</h1>
   <div class="main-container">
+    <div class="chats-panel">
+      <div class="chats-header">
+        <h3>Chats</h3>
+        <button class="new-chat-btn" (click)="createNewChat()">+ New Chat</button>
+      </div>
+      <div class="chats-list">
+        <div *ngFor="let chat of chats; let i = index" 
+             class="chat-item"
+             [class.active]="currentChatIndex === i"
+             (click)="switchChat(i)">
+          <input *ngIf="editingChatIndex === i"
+                 class="chat-title-input"
+                 [(ngModel)]="chat.title"
+                 (blur)="stopEditing()"
+                 (keyup.enter)="stopEditing()"
+                 (keyup.escape)="cancelEditing(i)"
+                 (click)="$event.stopPropagation()"
+                 #chatInput />
+          <span *ngIf="editingChatIndex !== i" 
+                class="chat-title">{{ chat.title }}</span>
+          <button class="rename-btn" 
+                  (click)="startEditing(i, $event)"
+                  *ngIf="editingChatIndex !== i"
+                  title="Rename chat">
+            ✏️
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="chat-container">
       <div class="messages">
-        <div *ngFor="let msg of messages" class="message-wrapper" [ngClass]="msg.sender">
+        <div *ngFor="let msg of getCurrentChat()?.messages" class="message-wrapper" [ngClass]="msg.sender">
           <div class="message-bubble">
             {{ msg.text }}
           </div>
@@ -11,24 +40,23 @@
       </div>
       <form (ngSubmit)="sendMessage()" class="input-area">
         <input [(ngModel)]="userInput" name="userInput" placeholder="Type a message..." />
-        <button type="submit" aria-label="Send message">↑</button>
+        <button type="submit" aria-label="Send message">→</button>
       </form>
     </div>
     <div class="evidence-panel">
       <h3>Evidence</h3>
       <div class="evidence-list">
-        <ng-container *ngFor="let msg of messages; let i = index">
+        <ng-container *ngFor="let msg of getCurrentChat()?.messages; let i = index">
           <ng-container *ngIf="msg.sender === 'bot' && msg.evidence && msg.evidence.length > 0">
-            <!-- Create a separate row for EACH piece of evidence -->
             <div *ngFor="let ev of msg.evidence; let j = index"
                  class="evidence-item"
-                 [class.expanded]="expandedEvidence[i + '_' + j]"
-                 (click)="toggleEvidence(i + '_' + j)">
+                 [class.expanded]="expandedEvidence[currentChatIndex + '_' + i + '_' + j]"
+                 (click)="toggleEvidence(currentChatIndex + '_' + i + '_' + j)">
               <div class="evidence-header">
                 <span class="evidence-title">{{ ev.display_name }}</span>
-                <span class="evidence-arrow">{{ expandedEvidence[i + '_' + j] ? '▼' : '▶' }}</span>
+                <span class="evidence-arrow">{{ expandedEvidence[currentChatIndex + '_' + i + '_' + j] ? '▼' : '▶' }}</span>
               </div>
-              <div *ngIf="expandedEvidence[i + '_' + j]" class="evidence-details">
+              <div *ngIf="expandedEvidence[currentChatIndex + '_' + i + '_' + j]" class="evidence-details">
                 <div class="game-info" *ngIf="ev.table === 'game_details'">
                   <div class="evidence-label">{{ ev.home_team }} vs {{ ev.away_team }}</div>
                   <div>Score: {{ ev.home_points }} - {{ ev.away_points }}</div>

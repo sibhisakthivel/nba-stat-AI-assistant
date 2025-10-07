@@ -32,6 +32,11 @@ interface Message {
   evidence?: Evidence[];
 }
 
+interface Chat {
+  title: string;
+  messages: Message[];
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -39,36 +44,98 @@ interface Message {
 })
 export class AppComponent {
   title = 'AI Engineering Sandbox';
-  messages: Message[] = [];
+  chats: Chat[] = [];
+  currentChatIndex = 0;
   userInput = '';
   expandedEvidence: { [key: string]: boolean } = {};
+  editingChatIndex: number | null = null;
+  originalTitle: string = '';
 
-  constructor(private chatService: ChatService) { }
+  constructor(private chatService: ChatService) {
+    // Initialize with one empty chat
+    this.createNewChat();
+  }
+
+  createNewChat(): void {
+    const chatNumber = this.chats.length + 1;
+    this.chats.push({
+      title: `Chat ${chatNumber}`,
+      messages: []
+    });
+    this.currentChatIndex = this.chats.length - 1;
+    this.userInput = '';
+  }
+
+  switchChat(index: number): void {
+    this.currentChatIndex = index;
+    this.userInput = '';
+  }
+
+  getCurrentChat(): Chat | null {
+    return this.chats[this.currentChatIndex] || null;
+  }
 
   sendMessage(): void {
     const input = this.userInput.trim();
-    if (!input) {
+    if (!input || !this.getCurrentChat()) {
       return;
     }
-    this.messages.push({ sender: 'user', text: input });
+
+    const currentChat = this.getCurrentChat()!;
+
+    // Update chat title based on first message
+    if (currentChat.messages.length === 0) {
+      currentChat.title = input.substring(0, 30) + (input.length > 30 ? '...' : '');
+    }
+
+    currentChat.messages.push({ sender: 'user', text: input });
     this.userInput = '';
 
     this.chatService.sendMessage(input).subscribe({
       next: (res: any) => {
         const reply = res?.answer ?? 'No Answer.';
-        this.messages.push({
+        currentChat.messages.push({
           sender: 'bot',
           text: reply,
           evidence: res?.evidence || []
         });
       },
       error: () => {
-        this.messages.push({ sender: 'bot', text: 'Error contacting server.' });
+        currentChat.messages.push({ sender: 'bot', text: 'Error contacting server.' });
       }
     });
   }
 
   toggleEvidence(key: string): void {
     this.expandedEvidence[key] = !this.expandedEvidence[key];
+  }
+
+  startEditing(index: number, event: Event): void {
+    event.stopPropagation();
+    this.editingChatIndex = index;
+    this.originalTitle = this.chats[index].title;
+
+    // Focus the input after Angular renders it
+    setTimeout(() => {
+      const input = document.querySelector('.chat-title-input') as HTMLInputElement;
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 0);
+  }
+
+  stopEditing(): void {
+    if (this.editingChatIndex !== null) {
+      // Title is already bound via ngModel, so just clear the editing state
+      this.editingChatIndex = null;
+    }
+  }
+
+  cancelEditing(index: number): void {
+    if (this.editingChatIndex !== null) {
+      this.chats[index].title = this.originalTitle;
+      this.editingChatIndex = null;
+    }
   }
 }
