@@ -50,6 +50,7 @@ export class AppComponent {
   expandedEvidence: { [key: string]: boolean } = {};
   editingChatIndex: number | null = null;
   originalTitle: string = '';
+  isLoading: boolean = false;
 
   constructor(private chatService: ChatService) {
     // Initialize with one empty chat
@@ -91,8 +92,12 @@ export class AppComponent {
     currentChat.messages.push({ sender: 'user', text: input });
     this.userInput = '';
 
+    // Show loading animation
+    this.isLoading = true;
+
     this.chatService.sendMessage(input).subscribe({
       next: (res: any) => {
+        this.isLoading = false;
         const reply = res?.answer ?? 'No Answer.';
         currentChat.messages.push({
           sender: 'bot',
@@ -101,6 +106,7 @@ export class AppComponent {
         });
       },
       error: () => {
+        this.isLoading = false;
         currentChat.messages.push({ sender: 'bot', text: 'Error contacting server.' });
       }
     });
