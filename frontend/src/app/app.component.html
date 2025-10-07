@@ -10,6 +10,7 @@
         <div *ngFor="let chat of chats; let i = index" 
              class="chat-item"
              [class.active]="currentChatIndex === i"
+             [class.pinned]="chat.pinned"
              (click)="switchChat(i)">
           <input *ngIf="editingChatIndex === i"
                  class="chat-title-input"
@@ -21,12 +22,24 @@
                  #chatInput />
           <span *ngIf="editingChatIndex !== i" 
                 class="chat-title">{{ chat.title }}</span>
-          <button class="rename-btn" 
-                  (click)="startEditing(i, $event)"
-                  *ngIf="editingChatIndex !== i"
-                  title="Rename chat">
-            ✏️
-          </button>
+          <div class="chat-actions" *ngIf="editingChatIndex !== i">
+            <button class="action-btn pin-btn" 
+                    (click)="togglePin(i, $event)"
+                    [class.pinned]="chat.pinned"
+                    title="Pin chat">
+              📌
+            </button>
+            <button class="action-btn rename-btn" 
+                    (click)="startEditing(i, $event)"
+                    title="Rename chat">
+              ✏️
+            </button>
+            <button class="action-btn delete-btn" 
+                    (click)="deleteChat(i, $event)"
+                    title="Delete chat">
+              🗑️
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -60,10 +73,24 @@
             <div *ngFor="let ev of msg.evidence; let j = index"
                  class="evidence-item"
                  [class.expanded]="expandedEvidence[currentChatIndex + '_' + i + '_' + j]"
+                 [class.pinned]="ev.pinned"
                  (click)="toggleEvidence(currentChatIndex + '_' + i + '_' + j)">
               <div class="evidence-header">
                 <span class="evidence-title">{{ ev.display_name }}</span>
-                <span class="evidence-arrow">{{ expandedEvidence[currentChatIndex + '_' + i + '_' + j] ? '▼' : '▶' }}</span>
+                <div class="evidence-actions">
+                  <button class="action-btn pin-btn" 
+                          (click)="toggleEvidencePin(i, j, $event)"
+                          [class.pinned]="ev.pinned"
+                          title="Pin evidence">
+                    📌
+                  </button>
+                  <button class="action-btn delete-btn" 
+                          (click)="deleteEvidence(i, j, $event)"
+                          title="Delete evidence">
+                    🗑️
+                  </button>
+                  <span class="evidence-arrow">{{ expandedEvidence[currentChatIndex + '_' + i + '_' + j] ? '▼' : '▶' }}</span>
+                </div>
               </div>
               <div *ngIf="expandedEvidence[currentChatIndex + '_' + i + '_' + j]" class="evidence-details">
                 <div class="game-info" *ngIf="ev.table === 'game_details'">

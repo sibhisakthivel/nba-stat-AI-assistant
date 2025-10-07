@@ -10,6 +10,7 @@ interface GameEvidence {
   away_points: number;
   game_date: string;
   display_name: string;
+  pinned?: boolean;
 }
 
 interface PlayerEvidence {
@@ -22,6 +23,7 @@ interface PlayerEvidence {
   assists?: number;
   game_id: number;
   display_name: string;
+  pinned?: boolean;
 }
 
 type Evidence = GameEvidence | PlayerEvidence;
@@ -35,6 +37,7 @@ interface Message {
 interface Chat {
   title: string;
   messages: Message[];
+  pinned?: boolean;
 }
 
 @Component({
@@ -61,7 +64,8 @@ export class AppComponent {
     const chatNumber = this.chats.length + 1;
     this.chats.push({
       title: `Chat ${chatNumber}`,
-      messages: []
+      messages: [],
+      pinned: false
     });
     this.currentChatIndex = this.chats.length - 1;
     this.userInput = '';
@@ -143,5 +147,76 @@ export class AppComponent {
       this.chats[index].title = this.originalTitle;
       this.editingChatIndex = null;
     }
+  }
+
+  togglePin(index: number, event: Event): void {
+    event.stopPropagation();
+    this.chats[index].pinned = !this.chats[index].pinned;
+
+    // Sort chats to move pinned ones to the top
+    this.sortChats();
+
+    // Update current chat index to track the moved chat
+    const currentChat = this.getCurrentChat();
+    if (currentChat) {
+      this.currentChatIndex = this.chats.indexOf(currentChat);
+    }
+  }
+
+  deleteChat(index: number, event: Event): void {
+    event.stopPropagation();
+
+    if (this.chats.length === 1) {
+      // Can't delete the last chat, just clear it instead
+      this.chats[0] = {
+        title: 'Chat 1',
+        messages: [],
+        pinned: false
+      };
+      return;
+    }
+
+    // Delete without confirmation
+    this.chats.splice(index, 1);
+
+    // Adjust current chat index if needed
+    if (this.currentChatIndex >= this.chats.length) {
+      this.currentChatIndex = this.chats.length - 1;
+    } else if (this.currentChatIndex > index) {
+      this.currentChatIndex--;
+    }
+  }
+
+  toggleEvidencePin(messageIndex: number, evidenceIndex: number, event: Event): void {
+    event.stopPropagation();
+    const currentChat = this.getCurrentChat();
+    if (currentChat && currentChat.messages[messageIndex]?.evidence) {
+      const evidence = currentChat.messages[messageIndex].evidence!;
+      evidence[evidenceIndex].pinned = !evidence[evidenceIndex].pinned;
+
+      // Sort evidence to move pinned ones to the top
+      evidence.sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return 0;
+      });
+    }
+  }
+
+  deleteEvidence(messageIndex: number, evidenceIndex: number, event: Event): void {
+    event.stopPropagation();
+    const currentChat = this.getCurrentChat();
+    if (currentChat && currentChat.messages[messageIndex]?.evidence) {
+      // Delete without confirmation
+      currentChat.messages[messageIndex].evidence!.splice(evidenceIndex, 1);
+    }
+  }
+
+  private sortChats(): void {
+    this.chats.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return 0;
+    });
   }
 }

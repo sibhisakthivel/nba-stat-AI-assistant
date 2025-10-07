@@ -81,12 +81,29 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
+
+    &.pinned {
+      background-color: #fffbf0;
+      border-color: #ffa500;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background-color: #ffa500;
+        border-radius: 8px 0 0 8px;
+      }
+    }
 
     &:hover {
       background-color: #f0f8ff;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
-      .rename-btn {
+      .chat-actions {
         opacity: 1;
       }
     }
@@ -96,8 +113,12 @@ h1 {
       color: white;
       border-color: #0b93f6;
 
-      .rename-btn {
+      .action-btn {
         color: white;
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.2);
+        }
       }
     }
 
@@ -123,7 +144,7 @@ h1 {
       padding: 0.25rem 0.5rem;
       outline: none;
       font-family: inherit;
-      color: #333; // Always use dark text for better readability
+      color: #333;
 
       &:focus {
         background: white;
@@ -131,19 +152,48 @@ h1 {
       }
     }
 
-    .rename-btn {
+    .chat-actions {
+      display: flex;
+      gap: 0.25rem;
       opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .action-btn {
       background: none;
       border: none;
       cursor: pointer;
-      color: #666;
       font-size: 18px;
       padding: 0.25rem;
-      transition: opacity 0.2s ease;
-      margin-left: 0.5rem;
+      transition: all 0.2s ease;
+      border-radius: 4px;
 
-      &:hover {
-        color: #0b93f6;
+      &.pin-btn {
+        color: #666;
+
+        &.pinned {
+          color: #ffa500;
+        }
+
+        &:hover {
+          color: #ffa500;
+        }
+      }
+
+      &.rename-btn {
+        color: #666;
+
+        &:hover {
+          color: #0b93f6;
+        }
+      }
+
+      &.delete-btn {
+        color: #666;
+
+        &:hover {
+          color: #ff4444;
+        }
       }
     }
   }
@@ -182,14 +232,6 @@ h1 {
   }
 }
 
-h3 {
-  margin: 0 0 1.5rem 0;
-  font-size: 2rem;
-  color: #333;
-  text-align: center;
-  font-family: inherit;
-}
-
 .evidence-list {
   display: flex;
   flex-direction: column;
@@ -203,9 +245,30 @@ h3 {
   padding: 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+
+  &.pinned {
+    background-color: #fffbf0;
+    border-color: #ffa500;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background-color: #ffa500;
+      border-radius: 8px 0 0 8px;
+    }
+  }
 
   &:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .evidence-actions {
+      opacity: 1;
+    }
   }
 
   &.expanded {
@@ -221,6 +284,44 @@ h3 {
   font-weight: 500;
   line-height: 1.6;
   min-height: 32px;
+}
+
+.evidence-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+
+  .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0.25rem;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+
+    &.pin-btn {
+      color: #666;
+
+      &.pinned {
+        color: #ffa500;
+      }
+
+      &:hover {
+        color: #ffa500;
+      }
+    }
+
+    &.delete-btn {
+      color: #666;
+
+      &:hover {
+        color: #ff4444;
+      }
+    }
+  }
 }
 
 .evidence-arrow {
