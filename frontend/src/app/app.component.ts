@@ -1,10 +1,30 @@
 import { Component } from '@angular/core';
 import { ChatService } from './services/chat.service';
 
-interface Evidence {
-  table: string;
-  id: number | string;
+interface GameEvidence {
+  table: 'game_details';
+  id: number;
+  home_team: string;
+  away_team: string;
+  home_points: number;
+  away_points: number;
+  game_date: string;
+  display_name: string;
 }
+
+interface PlayerEvidence {
+  table: 'player_box_scores';
+  id: string;
+  player_name: string;
+  team: string;
+  points: number;
+  rebounds?: number;
+  assists?: number;
+  game_id: number;
+  display_name: string;
+}
+
+type Evidence = GameEvidence | PlayerEvidence;
 
 interface Message {
   sender: 'user' | 'bot';
@@ -21,7 +41,7 @@ export class AppComponent {
   title = 'AI Engineering Sandbox';
   messages: Message[] = [];
   userInput = '';
-  expandedEvidence: { [key: number]: boolean } = {};
+  expandedEvidence: { [key: string]: boolean } = {};
 
   constructor(private chatService: ChatService) { }
 
@@ -48,7 +68,7 @@ export class AppComponent {
     });
   }
 
-  toggleEvidence(index: number): void {
-    this.expandedEvidence[index] = !this.expandedEvidence[index];
+  toggleEvidence(key: string): void {
+    this.expandedEvidence[key] = !this.expandedEvidence[key];
   }
 }

@@ -11,28 +11,39 @@
       </div>
       <form (ngSubmit)="sendMessage()" class="input-area">
         <input [(ngModel)]="userInput" name="userInput" placeholder="Type a message..." />
-        <button type="submit">Send</button>
+        <button type="submit" aria-label="Send message">↑</button>
       </form>
     </div>
     <div class="evidence-panel">
       <h3>Evidence</h3>
       <div class="evidence-list">
         <ng-container *ngFor="let msg of messages; let i = index">
-          <div *ngIf="msg.sender === 'bot' && msg.evidence && msg.evidence.length > 0"
-               class="evidence-item"
-               [class.expanded]="expandedEvidence[i]"
-               (click)="toggleEvidence(i)">
-            <div class="evidence-header">
-              <span class="evidence-title">Game {{ msg.evidence[0].id }}</span>
-              <span class="evidence-arrow">{{ expandedEvidence[i] ? '▼' : '▶' }}</span>
-            </div>
-            <div *ngIf="expandedEvidence[i]" class="evidence-details">
-              <div *ngFor="let ev of msg.evidence" class="evidence-entry">
-                <span class="evidence-type">{{ ev.table }}</span>
-                <span class="evidence-id">ID: {{ ev.id }}</span>
+          <ng-container *ngIf="msg.sender === 'bot' && msg.evidence && msg.evidence.length > 0">
+            <!-- Create a separate row for EACH piece of evidence -->
+            <div *ngFor="let ev of msg.evidence; let j = index"
+                 class="evidence-item"
+                 [class.expanded]="expandedEvidence[i + '_' + j]"
+                 (click)="toggleEvidence(i + '_' + j)">
+              <div class="evidence-header">
+                <span class="evidence-title">{{ ev.display_name }}</span>
+                <span class="evidence-arrow">{{ expandedEvidence[i + '_' + j] ? '▼' : '▶' }}</span>
+              </div>
+              <div *ngIf="expandedEvidence[i + '_' + j]" class="evidence-details">
+                <div class="game-info" *ngIf="ev.table === 'game_details'">
+                  <div class="evidence-label">{{ ev.home_team }} vs {{ ev.away_team }}</div>
+                  <div>Score: {{ ev.home_points }} - {{ ev.away_points }}</div>
+                  <div>Date: {{ ev.game_date }}</div>
+                </div>
+                <div class="player-info" *ngIf="ev.table === 'player_box_scores'">
+                  <div class="evidence-label">{{ ev.player_name }}</div>
+                  <div>Team: {{ ev.team }}</div>
+                  <div>Points: {{ ev.points }}</div>
+                  <div *ngIf="ev.rebounds">Rebounds: {{ ev.rebounds }}</div>
+                  <div *ngIf="ev.assists">Assists: {{ ev.assists }}</div>
+                </div>
               </div>
             </div>
-          </div>
+          </ng-container>
         </ng-container>
       </div>
     </div>
