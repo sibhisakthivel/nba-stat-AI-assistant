@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from backend.config import DB_DSN, EMBED_MODEL, LLM_MODEL
 from backend.utils import ollama_embed, ollama_generate
 from sqlalchemy import text
+from datetime import datetime
 
 app = FastAPI()
 app.add_middleware(
@@ -253,6 +254,8 @@ def answer(q: Q):
     DO NOT write "gameid" or "playerid" - use the ACTUAL NUMBERS from the context.
     If you are using player data context to answer the question, cite both the player id and game id in the specified format, don't forget to include both.
     
+    Answer in 1-2 full sentences, feel free to restate game related details mentioned in the question, but don't include anything extra that wasn't requested.
+    
     Question: {q.question}
     Answer:"""
 
@@ -333,6 +336,9 @@ def answer(q: Q):
             
             # First, add the game evidence
             for r in game_rows:
+                game_date_str = str(r['game_timestamp']).split()[0]  
+                game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
+                formatted_date = game_date.strftime('%m/%d/%y')
                 if str(r["game_id"]) == game_id:
                     used_evidence.append({
                         "table": "game_details",
@@ -341,13 +347,16 @@ def answer(q: Q):
                         "away_team": f"{r['away_city']} {r['away_name']}",
                         "home_points": r["home_points"],
                         "away_points": r["away_points"],
-                        "game_date": str(r["game_timestamp"]),
-                        "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
+                        "game_date": {formatted_date},
+                        "display_name": f"{r['away_abbrev']}@{r['home_abbrev']} {formatted_date}"
                     })
                     break
             
             # Then add the player evidence
             for r in player_rows:
+                game_date_str = str(r['game_timestamp']).split()[0]  
+                game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
+                formatted_date = game_date.strftime('%m/%d/%y')
                 if str(r['person_id']) == player_id and str(r['game_id']) == game_id:
                     used_evidence.append({
                         "table": "player_box_scores",
@@ -358,13 +367,16 @@ def answer(q: Q):
                         "rebounds": r['oreb'] + r['dreb'],
                         "assists": r['assists'],
                         "game_id": int(r["game_id"]),
-                        "display_name": f"{r['first_name']} {r['last_name']} - {r['points']} pts"
+                        "display_name": f"{r['first_name']} {r['last_name']} {formatted_date}"
                     })
                     break
                     
         elif table_name == "game_details":
             # For game-only questions, just add the game
             for r in game_rows:
+                game_date_str = str(r['game_timestamp']).split()[0]  
+                game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
+                formatted_date = game_date.strftime('%m/%d/%y')
                 if str(r["game_id"]) == row_id:
                     used_evidence.append({
                         "table": "game_details",
@@ -373,8 +385,8 @@ def answer(q: Q):
                         "away_team": f"{r['away_city']} {r['away_name']}",
                         "home_points": r["home_points"],
                         "away_points": r["away_points"],
-                        "game_date": str(r["game_timestamp"]),
-                        "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
+                        "game_date": {formatted_date},
+                        "display_name": f"{r['away_abbrev']}@{r['home_abbrev']} {formatted_date}"
                     })
                     break
 
@@ -386,6 +398,9 @@ def answer(q: Q):
             # Add both game and player for player-related questions
             if game_rows:
                 r = game_rows[0]
+                game_date_str = str(r['game_timestamp']).split()[0]  
+                game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
+                formatted_date = game_date.strftime('%m/%d/%y')
                 used_evidence.append({
                     "table": "game_details",
                     "id": int(r["game_id"]),
@@ -393,11 +408,14 @@ def answer(q: Q):
                     "away_team": f"{r['away_city']} {r['away_name']}",
                     "home_points": r["home_points"],
                     "away_points": r["away_points"],
-                    "game_date": str(r["game_timestamp"]),
-                    "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
+                    "game_date": {formatted_date},
+                    "display_name": f"{r['away_abbrev']}@{r['home_abbrev']} {formatted_date}"
                 })
             if player_rows:
                 r = player_rows[0]
+                game_date_str = str(r['game_timestamp']).split()[0]  
+                game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
+                formatted_date = game_date.strftime('%m/%d/%y')
                 used_evidence.append({
                     "table": "player_box_scores",
                     "id": f"{int(r['person_id'])}_{int(r['game_id'])}",
@@ -407,12 +425,15 @@ def answer(q: Q):
                     "rebounds": r['oreb'] + r['dreb'],
                     "assists": r['assists'],
                     "game_id": int(r["game_id"]),
-                    "display_name": f"{r['first_name']} {r['last_name']} - {r['points']} pts"
+                   "display_name": f"{r['first_name']} {r['last_name']} {formatted_date}"
                 })
         else:
             # Just add top game for game-only questions
             if game_rows:
                 r = game_rows[0]
+                game_date_str = str(r['game_timestamp']).split()[0]  
+                game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
+                formatted_date = game_date.strftime('%m/%d/%y')
                 used_evidence.append({
                     "table": "game_details",
                     "id": int(r["game_id"]),
@@ -420,8 +441,8 @@ def answer(q: Q):
                     "away_team": f"{r['away_city']} {r['away_name']}",
                     "home_points": r["home_points"],
                     "away_points": r["away_points"],
-                    "game_date": str(r["game_timestamp"]),
-                    "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
+                    "game_date": {formatted_date},
+                    "display_name": f"{r['away_abbrev']}@{r['home_abbrev']} {formatted_date}"
                 })
             
     return {
