@@ -13,21 +13,53 @@ embed.py:
 
 - Draft a SQL query that joins the players, teams, and player_box_scores tables onto the game_details table, table schemas below:
 - Draft a SQL query that joins the players, teams, and game_details tables onto the player_box_scores table, table schemas below:
-- Give me feedback on my game and player row text functions that are going to be embedded with the goal of aligned with question prompt embeddings, lmk if you have any suggestions
+- Give me feedback on my game and player row text function outputs that are going to be embedded with the goal of aligned with question prompt embeddings, lmk if you have any suggestions:
 - How can I generate different date formats using the game_timestamp data so my embeddings align with questions that use diverse date formats
 - Write a SQL query that checks if there are any player_ids in player_box_scores that aren't in the players table
-- 
+- How do I optimize embedding speed when using Ollama’s nomic-embed-text model locally?
+- Should I embed each player row separately or join player and game info before embedding?
 
 rag.py:
 
-- 
+- For the "leading scorer" questions, even though the right game rows are being retrieved, we're not retrieving enough player rows to ensure that the leading scorer of the entire game is actually being
+returned. Should we increase the number of rows we retrieve as context? Or do you have any other ideas for how we can handle this?
+- Draft a helper function that parses the question prompt for phrases indicating that the question requests a stat leader
+- Draft a helper function that parses the question prompt for which individual stats are being requested. We'll use it to expand player context dynmically so that the LLM doesn'y have to parse through
+extra information it might not need
+- Draft an LLM prompt for the answer() func that enforces proper output formatting
+- Reformat the main execution into a function that answers one given question at a time
+- Draft an execution code block that answers only a given question id if provided as an argument
+- How do I ensure that the LLM outputs responses in a JSON format to be written into answers.json 
+- Why is my LLM runtime so long, and how can I reduce context length without losing accuracy?
+- Help me decide on the number of rows to retrieve for both tables to balance accuracy and runtime
+- How can I shorten context length while preserving key details for the LLM?
 
 Part 2: Claude Opus 4.1
 
 Overview and Design:
 
-- 
+- Review the frontend section of this repo, what are the main files I'm going to be editing to improve the chatbox UI?
+- Which files in the repo are responsible for connecting the backend implementation with the frontend chatbox UI?
+- In the chatbox UI, I want to implement an evidence feature that visualizes player and game evidence used to answer question prompts. Can this be handled strictly through the frontend? Or do I need to
+implement it in a backend file?
 
-Implementation:
+Backend (server.py):
 
-- 
+- Should server.py resemble rag.py for the most part?
+- Give feedback on how my serv.py setup looks:
+- How would I design the evidence visualization feature I mentioned? How would you adjust the server.py file to implement this?
+- Adjust the LLM prompt so that it outputs an evidence tag that we can parse to retrieve game and player IDs used to answer the question
+
+Frontend:
+
+- Expand the chatbox so it takes up more of the screen
+- Change the styling of the chatbox to resemble more of a messaging interface with blue user bubbles and white bot response bubbles
+- Change the font and increase the font and bubble size, each message bubble should take up about 1/4 of the chatbox
+- Change the send message button to a blue button with an arrow
+- Add a column titled "Evidence" on the right hand side, insert a game and/or player evidence row everytime a question is answered
+- Change the evidence row font and size to match that of the messages in the chatbox
+- Add a column titled "Chats" on the left hand side, place a blue "new chat" underneath the title
+- Add a rename button to chat rows represented by a pencil icon
+- Add pin and trash icons to chat and evidence rows for pinning and deleting rows
+- Create a dark mode that uses black, gray, white, and purple, and put a toggle button in the top right with a moon icon to switch to dark mode and a sun to switch to light mode
+- Add a 3 dot loading animation after sending a question prompt that plays until a response is outputted
