@@ -90,4 +90,21 @@ allowing coaches to evaluate matchups, lineup fit, and individual player movemen
 
 
 
-5. 
+5. The goal of this system would be to transform a large text corpus into actionable insights for Basketball Operations. I would design an end-to-end NLP pipeline that organizes, interprets, and delivers 
+information to front-office staff in a clear and readable format. This system would convert unstructured reports and notes into structured knowledge, allowing decision-makers to efficiently access and 
+interpret incoming data. 
+
+I would start by building a data-ingestion pipeline to organize the different document types within the corpus. Text from PDFs, emails, and spreadsheets would be extracted using tools such as PyPDF2. 
+Each document would then be tagged with labels such as author, date, document type, and source reliability to preserve context. Once processed, the text would be embedded using OpenAI’s text-embedding 
+models, allowing for similarity-based retrieval even when tone and diction differ across reports. This representation ensures that both subjective evaluations and structured information, can be efficiently 
+compared and retrieved through a query-driven system.
+
+Once the data is embedded and stored, I would develop a retrieval and analysis system that allows users to efficiently access relevant insights from the corpus. I would perform data retrieval through
+a combination of vector similarity and keyword filtering for specific names, teams, or dates. This ensures that both contextually similar and explicitly referenced documents are returned for any given query.
+The retrieved content would then be provided to an LLM for reformatting, while still maintaing diverse perspectives in subjective reports. This step would allow the model to highlight consensus among
+resources, identify conflicting evaluations, and other key details that would influence decision-making.
+
+To ensure reliability, I would implement a validation check that cross-references LLM outputs with their cited sources to verify accuracy. Outputs flagged for low confidence, missing citations, or 
+conflicting information would be routed for manual review by analysts, creating a feedback loop that strengthens model performance over time. This validation step would help the front office develop 
+confidence in the system’s findings and rely on it as a consistent decision-support tool. Over time, this process would refine the system’s accuracy and improve its ability to interpret data and support 
+organizational decision-making.
