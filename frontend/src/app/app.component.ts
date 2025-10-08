@@ -54,10 +54,15 @@ export class AppComponent {
   editingChatIndex: number | null = null;
   originalTitle: string = '';
   isLoading: boolean = false;
+  isDarkMode: boolean = false;
 
   constructor(private chatService: ChatService) {
     // Initialize with one empty chat
     this.createNewChat();
+
+    // Check for saved theme preference or default to light mode
+    const savedTheme = localStorage.getItem('theme');
+    this.isDarkMode = savedTheme === 'dark';
   }
 
   createNewChat(): void {
@@ -210,6 +215,11 @@ export class AppComponent {
       // Delete without confirmation
       currentChat.messages[messageIndex].evidence!.splice(evidenceIndex, 1);
     }
+  }
+
+  toggleTheme(): void {
+    this.isDarkMode = !this.isDarkMode;
+    localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
   }
 
   private sortChats(): void {
