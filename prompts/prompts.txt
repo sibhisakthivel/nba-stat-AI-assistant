@@ -1,0 +1,24 @@
+##### LLM Prompts
+
+Part 1: ChatGPT 5 Instant
+
+Overview and Design:
+
+
+
+embed.py:
+
+
+
+rag.py:
+
+
+
+Part 2: Claude Opus 4.1
+
+Overview and Design:
+
+
+
+Implementation:
+
