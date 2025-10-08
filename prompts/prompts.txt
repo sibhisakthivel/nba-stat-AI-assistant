@@ -4,8 +4,9 @@ Part 1: ChatGPT 5 Instant
 
 Overview and Design:
 
-- Review and breakdown the attached project overview and instructions 
+- Review and breakdown the project overview and instructions:
 - Describe and outline the purpose and structure of each file in the backend section of the repo
+- How is the LLM intended to retrieve rows from the database table?
 - What exactly is a RAG pipeline? How is it related to NLP? What is embedding and where does it fit into this process?
 - For the purpose of completing part 1, does ingest.py need to be modified at all?
 
