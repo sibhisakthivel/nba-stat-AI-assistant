@@ -47,7 +47,19 @@ Moving forward, I hope to deepen my understanding of the techniques I implemente
 I plan to apply these skills to my NBA player performance modeling work by deploying and benchmarking LLMs in a production-like environment to automate and scale insight generation.
 I also want to explore how these same techniques can be optimized for larger, more complex datasets and more challenging retrieval contexts.
 
-3.
+3. Sub-possession level data shows on how teams carry out individual plays, providing specific insights on player movement patterns, decision timing, and spacing. This data is valuable as 
+analyzing it allows us to determine several features that impact in-game strategy decisions.
+
+I would start by analyzing opponent data to identify which play types they run most frequently and which they find the most success with. This would enable the team to anticipate the 
+opponent's preferred play set and adjust their defensive setup accordingly. I would also identify which positional and spacing setups typically result in unsuccessful possessions, which
+would guide the defense to try to force their opponents into these inefficient schemas.
+
+Next I would analyze my own team's data. I would identify which play types and positional setups have been reliably successful, and which have been historically unsuccessful. Not only would 
+this impact in-game strategic decision-making, but it would also allow the coaching staff to identify areas of weakness to focus on during practice. Furthermore, when taking into account common
+play types that specific opponents struggle defending against, we could adjust our offensive game plan to exploit those weaknesses to maximize scoring output.
+
+Finally, I would use this data to explore individual player success from specific positions or in specific roles within a play. Not only would this identify how a player can be used optimally on the
+court in a game, but it would highlight areas of weakness to prioritize during practice.
 
 4.
 
