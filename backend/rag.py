@@ -6,37 +6,32 @@ from sqlalchemy import text
 from backend.config import DB_DSN, EMBED_MODEL, LLM_MODEL
 from backend.utils import ollama_embed, ollama_generate
 
-# Force 1b model
-# LLM_MODEL = "llama3.2:1b"
-
 BASE_DIR = os.path.dirname(__file__)
 QUESTIONS_PATH = os.path.normpath(os.path.join(BASE_DIR, "..", "part1", "questions.json"))
 ANSWERS_PATH = os.path.normpath(os.path.join(BASE_DIR, "..", "part1", "answers.json"))
 TEMPLATE_PATH = os.path.normpath(os.path.join(BASE_DIR, "..", "part1", "answers_template.json"))
 
-
 def is_leader_question(question):
     """
-    Detect if this is a leader/comparison question.
+    Flag if question asks to identify a stat leader.
     """
     q_lower = question.lower()
-    indicators = [
-        "leading", "leader", "led", "most", "highest", "top scorer",
-        "who was the", "who had the most", "which player"
-    ]
+    
+    # Phrases that indicate "leader" type question
+    indicators = ["leading", "leader", "led", "most", "highest", "top", "who was the"]
     return any(phrase in q_lower for phrase in indicators)
 
 
 def extract_requested_stats(question):
     """
-    Extract which stats are mentioned in the question.
+    Identify which stats are mentioned in the question.
     """
     q = question.lower()
     
-    # Always include these
+    # Minimum stats to include
     stats = ["points", "rebounds", "assists"]
     
-    # Add specific stats if mentioned
+    # Add if mentioned
     if "steal" in q:
         stats.append("steals")
     if "block" in q:
@@ -49,13 +44,12 @@ def extract_requested_stats(question):
 
 def retrieve(cx, qvec, question):
     """
-    Retrieve games and players based on question type.
+    Retrieve games_details and player_box_scores rows depending on question type.
     """
+    # Determine if we need to retrieve addtional player_box_scores rows
     is_leader = is_leader_question(question)
     
-    # Get games
-    game_limit = 5
-    
+    # Retrieve game_details rows
     game_sql = """
     SELECT g.game_id, g.season, g.game_timestamp,
             h.name AS home_name, h.city AS home_city, h.abbreviation AS home_abbrev, g.home_points, 
@@ -68,13 +62,15 @@ def retrieve(cx, qvec, question):
     LIMIT :k
     """
     
-    game_rows = list(cx.execute(text(game_sql), {"q": qvec, "k": game_limit}).mappings())
+    game_rows = list(cx.execute(text(game_sql), {"q": qvec, "k": 3}).mappings())
     
-    # Get players
+    # Retrieve player_box_scores rows
     if is_leader and game_rows:
-        # Get ALL players from the retrieved games
-        game_ids = [g['game_id'] for g in game_rows]
         
+        game_ids = [g['game_id'] for g in game_rows[0:2]]    
+        print(game_ids)
+        
+        # Get ALL players from the top 2 retrieved games if "leader"
         player_sql = """
         SELECT pbs.person_id, pbs.game_id, p.first_name, p.last_name, t.name AS team_name,
                 pbs.points, pbs.offensive_reb AS oreb, pbs.defensive_reb AS dreb, pbs.assists,
@@ -90,8 +86,10 @@ def retrieve(cx, qvec, question):
         """
         
         player_rows = list(cx.execute(text(player_sql), {"game_ids": game_ids}).mappings())
+        
     else:
-        # Regular retrieval - 5 players by vector similarity
+        
+        # Retrieve top 5 players by vector similarity
         player_sql = """
         SELECT pbs.person_id, pbs.game_id, p.first_name, p.last_name, t.name AS team_name,
                 pbs.points, pbs.offensive_reb AS oreb, pbs.defensive_reb AS dreb, pbs.assists,
@@ -113,7 +111,10 @@ def retrieve(cx, qvec, question):
 
 def game_context(r):
     """
-    Build game context.
+    Build game context. 
+    Includes:
+    - Game ID and date
+    - Home/away teams and score
     """
     return (
         f"Game {r['game_id']} on {r['game_timestamp']}: "
@@ -124,10 +125,15 @@ def game_context(r):
 
 def player_context(r, requested_stats):
     """
-    Build player context with date and requested stats only.
+    Build player context with date and requested stats only. 
+    Includes:
+    - Game ID and date
+    - Player name and recorded stats
     """
+    # Context Base
     parts = [f"Game {r['game_id']} on {r.get('game_timestamp', 'unknown date')}: {r['first_name']} {r['last_name']} ({r['team_name']})"]
     
+    # Build stat context depending on which stats were requested
     stat_parts = []
     
     if "points" in requested_stats:
@@ -154,22 +160,20 @@ def player_context(r, requested_stats):
 
 def build_context(rows, requested_stats):
     """
-    Build context with games first, then players grouped by game.
+    Wrapper function to combine game and player context.
     """
     context = []
     
-    # Separate games and players
     games = [r for r in rows if r["source"] == "game_details"]
     players = [r for r in rows if r["source"] == "player_box_scores"]
     
-    # Sort players by game_id and points for better organization
     players.sort(key=lambda x: (x.get('game_id', 0), -x.get('points', 0)))
     
-    # Add games
+    # Game Context
     for g in games:
         context.append(game_context(g))
     
-    # Add players
+    # Player Context
     for p in players:
         context.append(player_context(p, requested_stats))
     
@@ -182,39 +186,41 @@ def answer(question, rows, requested_stats, question_id):
     """
     ctx = build_context(rows, requested_stats)
     
-    # Load template to understand structure
+    # Load answer template 
     with open(TEMPLATE_PATH, encoding="utf-8") as f:
         template = json.load(f)
     
-    expected = template[question_id - 1]["result"]
-    
-    prompt = f"""Return ONLY the JSON result object that matches this structure:
-{json.dumps(expected, indent=2)}
+    expected = template[question_id - 1]["result"]  # Retrieve `result` field of current question for LLM context
 
-Rules:
-1. Use ONLY data from the Context below
-2. Return ONLY the result object (no 'id' or 'evidence' fields)
-3. All fields must be present (use null if not found)
-4. For 'score': format as "HOME_POINTS-AWAY_POINTS" (e.g., "120-114")
-5. Christmas Day = December 25, New Year's Eve = December 31
-6. "4/9 in the 2023 NBA Season" means April 9, 2024 (seasons run Sept-June)
-7. For leading scorer: find the player with HIGHEST points from the SPECIFIC game mentioned
-9. Use full team names (e.g., "Denver Nuggets" not "DEN")
-10. Match dates exactly - if the specific game isn't in context, return null
+    # LLM Prompt with guidelines for response accuracy
+    prompt = f"""Return ONLY the JSON result object matching this exact structure:
+    {json.dumps(expected, indent=2)}
 
-Context:
-{ctx}
+    Requirements:
+    - Include only the fields shown above: {', '.join([k for k in expected.keys() if k != 'evidence']) if isinstance(expected, dict) else 'exactly as shown'}
+    - Do not add 'evidence' field (will be added programmatically), or any other fields not shown above
+    - All fields must be present (use null if data not found in context)
+    - Use only information from the provided Context below
+    - Use the exact name from context, convert all non-ASCII characters in player names to their ASCII equivalents (ie. Dončić -> Doncic)
+    - Use full team names (e.g., "Denver Nuggets" not "DEN")
+    - Date interpretations:
+    - Convert holiday names to standard dates when referenced (ie. Halloween -> 10/31)
+    - "4/9 in the 2023 NBA Season" = April 9, 2024 (seasons span Sept-June)
+    - Match dates exactly - return null if referenced game not in context
 
-Question: {question}
+    Context:
+    {ctx}
 
-JSON result only:"""
+    Question: {question}
+
+    Return only the JSON object:"""
     
     return ollama_generate(LLM_MODEL, prompt)
 
 
 def process_question(question_id):
     """
-    Process a single question by ID.
+    Answer a single question by ID.
     """
     print(f"\n{'='*60}")
     print(f"Processing Question {question_id}")
@@ -225,12 +231,13 @@ def process_question(question_id):
     with open(QUESTIONS_PATH, encoding="utf-8") as f:
         questions = json.load(f)
     
+    # Input Error Handling
     if question_id < 1 or question_id > len(questions):
         print(f"Error: Question {question_id} not found")
         return
     
     q = questions[question_id - 1]
-    print(f"Question: {q['question'][:70]}...")
+    print(f"Question: {q['question']}")
     
     # Load existing answers or create new
     if os.path.exists(ANSWERS_PATH):
@@ -243,8 +250,8 @@ def process_question(question_id):
     while len(answers) < len(questions):
         answers.append({"id": len(answers) + 1, "result": None, "evidence": []})
     
+    # Start processing 
     eng = sa.create_engine(DB_DSN)
-    
     with eng.begin() as cx:
         # Analyze question
         is_leader = is_leader_question(q["question"])
@@ -253,7 +260,7 @@ def process_question(question_id):
         print(f"  Type: {'Leader' if is_leader else 'Regular'}")
         print(f"  Stats: {requested_stats}")
         
-        # Retrieve
+        # Embed question and retrieve rows
         qvec = ollama_embed(EMBED_MODEL, q["question"])
         rows = retrieve(cx, qvec, q["question"])
         
@@ -265,6 +272,7 @@ def process_question(question_id):
         # Generate answer
         ans = answer(q["question"], rows, requested_stats, question_id)
         
+        # Parse LLM response as JSON, attempting regex extraction if not found
         try:
             result = json.loads(ans)
             print(f"  Result: {result}")
@@ -284,45 +292,59 @@ def process_question(question_id):
         
         # Build evidence
         evidence = []
-        for r in rows[:10]:
+        for r in rows:  
+            
             if r["source"] == "game_details":
                 evidence.append({
                     "table": "game_details",
                     "id": int(r["game_id"])
                 })
+                
             elif r["source"] == "player_box_scores":
                 evidence.append({
-                    "table": "player_box_scores",
-                    "id": f"{int(r['person_id'])}_{int(r['game_id'])}"
-                })
-        
-        print(evidence)
-        
-        # Update answer
+                    "table": "player_box_score",                            # Note: template shows "player_box_score" (singular) not "player_box_scores"
+                    "id": f"{int(r['person_id'])}_{int(r['game_id'])}"      # Include both player ID and game ID (player ID alone isn't a primary key)
+                })                                                          # Formatted as: "playerid_gameid"
+
+        # Add evidence to the result 
+        if result:
+            result["evidence"] = evidence
+        else:
+            result = {"evidence": evidence}
+
+        print(f"  Evidence: {len(evidence)} rows")
+
+        # Update answer with question id and result (which contains evidence)
         answers[question_id - 1] = {
             "id": question_id,
-            "result": result,
-            "evidence": evidence
+            "result": result
         }
     
-    # Save
+    # Save answers
     with open(ANSWERS_PATH, "w", encoding="utf-8") as f:
-        json.dump(answers, f, indent=2)
+        f.write('[\n') 
+        for i, ans in enumerate(answers):  
+            if i > 0:
+                f.write(',\n')
+            f.write(json.dumps(ans, separators=(',', ':')))
+        f.write('\n]')
     
     print(f"\n✅ Updated answers.json")
 
 
 if __name__ == "__main__":
+    
+    # 1 arg provided => answer all questions
     if len(sys.argv) != 2:
-        # Process all questions
         print("Processing all questions...")
         with open(QUESTIONS_PATH, encoding="utf-8") as f:
             questions = json.load(f)
         
         for i in range(1, len(questions) + 1):
             process_question(i)
+            
+    # 2 args provided => answer given question only
     else:
-        # Process single question
         try:
             qid = int(sys.argv[1])
             process_question(qid)

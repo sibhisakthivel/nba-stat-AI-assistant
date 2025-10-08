@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from backend.config import DB_DSN, EMBED_MODEL, LLM_MODEL
 from backend.utils import ollama_embed, ollama_generate
 from sqlalchemy import text
+import re
 from datetime import datetime
 
 app = FastAPI()
@@ -47,6 +48,12 @@ def player_context(r):
 
 @app.post("/api/chat")
 def answer(q: Q):
+    '''
+    Process a user question by retrieving relevant game and player data, generating an LLM-based answer, and returning evidence. 
+    The evidence algorithm extracts cited rows from the model output or falls back to top-ranked game and player rows when no explicit citation is found.
+    Evidence is used to visualize data associated with the question and answer in the UI.
+    '''
+    # Embed question
     print('Received question')
     qvec = ollama_embed(EMBED_MODEL, q.question)
     
@@ -61,12 +68,10 @@ def answer(q: Q):
                 "FROM game_details g "
                 "JOIN teams h ON g.home_team_id = h.team_id "
                 "JOIN teams a ON g.away_team_id = a.team_id "
-                # "ORDER BY g.game_embedding <-> :q::vector "
                 f"ORDER BY game_embedding <-> ARRAY{qvec}::vector "
                 "LIMIT :k"
             ),
             {"q": qvec, "k": 5}
-
         ).mappings())
         
         # Query players with team information
@@ -80,7 +85,6 @@ def answer(q: Q):
                 "JOIN players p ON pbs.person_id = p.player_id "
                 "JOIN teams t ON pbs.team_id = t.team_id "
                 "JOIN game_details g ON g.game_id = pbs.game_id "
-                # "ORDER BY pbs.player_embedding <-> :q::vector "
                 f"ORDER BY player_embedding <-> ARRAY{qvec}::vector "
                 "LIMIT :k"
             ),
@@ -100,142 +104,8 @@ def answer(q: Q):
         ctx = f"=== Players ===\n{player_ctx}"
     else:
         ctx = "No relevant data found."
-    
-    # Generate response
-    # prompt = f"Use context only:\n{ctx}\n\nQ:{q.question}\nA:"
-    # resp = ollama_generate(LLM_MODEL, prompt)
-    
-    # # Build evidence array
-    # # evidence = []
-    # # for r in game_rows:
-    # #     evidence.append({
-    # #         "table": "game_details",
-    # #         "id": int(r["game_id"])
-    # #     })
-    # # for r in player_rows:
-    # #     evidence.append({
-    # #         "table": "player_box_scores",
-    # #         "id": f"{int(r['person_id'])}_{int(r['game_id'])}"
-    # #     })
-    
-    # evidence = []
-    # for r in game_rows:
-    #     evidence.append({
-    #         "table": "game_details",
-    #         "id": int(r["game_id"]),
-    #         "home_team": f"{r['home_city']} {r['home_name']}",
-    #         "away_team": f"{r['away_city']} {r['away_name']}",
-    #         "home_points": r["home_points"],
-    #         "away_points": r["away_points"],
-    #         "game_date": str(r["game_timestamp"]),
-    #         "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
-    #     })
-    # for r in player_rows:
-    #     evidence.append({
-    #         "table": "player_box_scores",
-    #         "id": f"{int(r['person_id'])}_{int(r['game_id'])}",
-    #         "player_name": f"{r['first_name']} {r['last_name']}",
-    #         "team": r["team_name"],
-    #         "points": r["points"],
-    #         "game_id": int(r["game_id"]),
-    #         "display_name": f"{r['first_name']} {r['last_name']} - Game {r['game_timestamp']}"
-    #     })
-    
-    # return {
-    #     "answer": resp,
-    #     "evidence": evidence
-    # }
 
-#     prompt = f"""Use context only:
-# {ctx}
-
-# Q:{q.question}
-# A: [Answer the question, then at the very end add which evidence you primarily used]
-# [EVIDENCE_USED: game_details:[game_id] or player_box_scores:[PLAYERID_GAMEID]], 
-# Replace bracketed fields with actual id values"""
-    
-#     resp = ollama_generate(LLM_MODEL, prompt)
-    
-#     # Extract the evidence tag and clean the answer
-#     import re
-#     evidence_match = re.search(r'\[EVIDENCE_USED:\s*([^:]+):([^\]]+)\]', resp)
-    
-#     # Remove the evidence tag from the visible answer
-#     clean_answer = re.sub(r'\[EVIDENCE_USED:[^\]]+\]', '', resp).strip()
-    
-#     # Find the specific evidence that was used
-#     used_evidence = []
-#     if evidence_match:
-#         table_name = evidence_match.group(1).strip()
-#         row_id = evidence_match.group(2).strip()
-        
-#         # Find the matching evidence from our retrieved rows
-#         if table_name == "game_details":
-#             for r in game_rows:
-#                 if str(r["game_id"]) == row_id:
-#                     used_evidence.append({
-#                         "table": "game_details",
-#                         "id": int(r["game_id"]),
-#                         "home_team": f"{r['home_city']} {r['home_name']}",
-#                         "away_team": f"{r['away_city']} {r['away_name']}",
-#                         "home_points": r["home_points"],
-#                         "away_points": r["away_points"],
-#                         "game_date": str(r["game_timestamp"]),
-#                         "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
-#                     })
-#                     break
-#         elif table_name == "player_box_scores":
-#             for r in player_rows:
-#                 if f"{r['person_id']}_{r['game_id']}" == row_id:
-#                     used_evidence.append({
-#                         "table": "player_box_scores",
-#                         "id": f"{int(r['person_id'])}_{int(r['game_id'])}",
-#                         "player_name": f"{r['first_name']} {r['last_name']}",
-#                         "team": r["team_name"],
-#                         "points": r["points"],
-#                         "game_id": int(r["game_id"]),
-#                         "display_name": f"{r['first_name']} {r['last_name']} - {r['points']} pts"
-#                     })
-#                     break
-    
-#     # If no evidence tag found or couldn't match, fall back to top result
-#     if not used_evidence:
-#         # Just use the most relevant game as fallback
-#         if game_rows:
-#             r = game_rows[0]
-#             used_evidence.append({
-#                 "table": "game_details",
-#                 "id": int(r["game_id"]),
-#                 "home_team": f"{r['home_city']} {r['home_name']}",
-#                 "away_team": f"{r['away_city']} {r['away_name']}",
-#                 "home_points": r["home_points"],
-#                 "away_points": r["away_points"],
-#                 "game_date": str(r["game_timestamp"]),
-#                 "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
-#             })
-    
-#     return {
-#         "answer": clean_answer,  # Send the cleaned answer without the tag
-#         "evidence": used_evidence  # Only the evidence that was actually used
-#     }
-    
-    # prompt = f"""Use context only:
-    # {ctx}
-
-    # Answer the question based on the context above. At the VERY END of your response, on a new line, add an evidence tag with the ACTUAL ID numbers from the data you used.
-
-    # The tag format is: |||EVIDENCE:table_name:actual_id|||
-
-    # Examples:
-    # - If you used Game 22300634: |||EVIDENCE:game_details:22300634|||
-    # - If you used Luka Dončić (player 203081) in game 22300634: |||EVIDENCE:player_box_scores:203081_22300634|||
-
-    # DO NOT write "gameid" or "playerid" - use the ACTUAL NUMBERS from the context.
-    # If you are using player data context to answer the question, cite both the player id and game id in the specified format, don't forget to include both.
-
-    # Question: {q.question}
-    # Answer:"""
-    
+    # LLM Prompt 
     prompt = f"""Use context only:
     {ctx}
 
@@ -262,66 +132,12 @@ def answer(q: Q):
     resp = ollama_generate(LLM_MODEL, prompt)
     print(resp)
     
-    # Extract the evidence tag more reliably
-    import re
-    
-    # Look for the evidence pattern at the end
+    # Extract the evidence tag 
     evidence_pattern = r'\|\|\|EVIDENCE:([^:]+):([^\|]+)\|\|\|'
     evidence_match = re.search(evidence_pattern, resp)
     
     # Remove the evidence tag from the visible answer
     clean_answer = re.sub(evidence_pattern, '', resp).strip()
-    
-    # # Find the specific evidence that was used
-    # used_evidence = []
-    # if evidence_match:
-    #     table_name = evidence_match.group(1).strip()
-    #     row_id = evidence_match.group(2).strip()
-        
-    #     # Find the matching evidence from our retrieved rows
-    #     if table_name == "game_details":
-    #         for r in game_rows:
-    #             if str(r["game_id"]) == row_id:
-    #                 used_evidence.append({
-    #                     "table": "game_details",
-    #                     "id": int(r["game_id"]),
-    #                     "home_team": f"{r['home_city']} {r['home_name']}",
-    #                     "away_team": f"{r['away_city']} {r['away_name']}",
-    #                     "home_points": r["home_points"],
-    #                     "away_points": r["away_points"],
-    #                     "game_date": str(r["game_timestamp"]),
-    #                     "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
-    #                 })
-    #                 break
-    #     elif table_name == "player_box_scores":
-    #         player_id, game_id = row_id.split('_') if '_' in row_id else (row_id, None)
-    #         for r in player_rows:
-    #             if str(r['person_id']) == player_id:
-    #                 used_evidence.append({
-    #                     "table": "player_box_scores",
-    #                     "id": f"{int(r['person_id'])}_{int(r['game_id'])}",
-    #                     "player_name": f"{r['first_name']} {r['last_name']}",
-    #                     "team": r["team_name"],
-    #                     "points": r["points"],
-    #                     "game_id": int(r["game_id"]),
-    #                     "display_name": f"{r['first_name']} {r['last_name']} - {r['points']} pts"
-    #                 })
-    #                 break
-    
-    # # If no evidence found or LLM didn't follow format, use top results as fallback
-    # if not used_evidence and game_rows:
-    #     # Add top 2 most relevant results as fallback
-    #     for r in game_rows[:2]:
-    #         used_evidence.append({
-    #             "table": "game_details",
-    #             "id": int(r["game_id"]),
-    #             "home_team": f"{r['home_city']} {r['home_name']}",
-    #             "away_team": f"{r['away_city']} {r['away_name']}",
-    #             "home_points": r["home_points"],
-    #             "away_points": r["away_points"],
-    #             "game_date": str(r["game_timestamp"]),
-    #             "display_name": f"{r['home_name']} vs {r['away_name']} ({r['game_timestamp']})"
-    #         })
     
     # Find the specific evidence that was used
     used_evidence = []
@@ -331,10 +147,10 @@ def answer(q: Q):
         
         # For player questions, we want BOTH the game and player evidence
         if table_name == "player_box_scores":
-            # Parse the player_game ID
+            # Parse the player_game IDs
             player_id, game_id = row_id.split('_') if '_' in row_id else (row_id, None)
             
-            # First, add the game evidence
+            # Add game evidence
             for r in game_rows:
                 game_date_str = str(r['game_timestamp']).split()[0]  
                 game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
@@ -352,7 +168,7 @@ def answer(q: Q):
                     })
                     break
             
-            # Then add the player evidence
+            # Add player evidence
             for r in player_rows:
                 game_date_str = str(r['game_timestamp']).split()[0]  
                 game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
@@ -371,8 +187,8 @@ def answer(q: Q):
                     })
                     break
                     
+        # For game questions, we only want game evidence
         elif table_name == "game_details":
-            # For game-only questions, just add the game
             for r in game_rows:
                 game_date_str = str(r['game_timestamp']).split()[0]  
                 game_date = datetime.strptime(game_date_str, '%Y-%m-%d')
@@ -392,10 +208,11 @@ def answer(q: Q):
 
     # If no evidence found, use top results as fallback
     if not used_evidence:
-        # Check if this seems like a player question based on keywords
         question_lower = q.question.lower()
+        
         if any(word in question_lower for word in ['scored', 'points', 'player', 'who']):
-            # Add both game and player for player-related questions
+            
+            # Add top game and player rows as evidence for player-related questions
             if game_rows:
                 r = game_rows[0]
                 game_date_str = str(r['game_timestamp']).split()[0]  
@@ -411,6 +228,7 @@ def answer(q: Q):
                     "game_date": {formatted_date},
                     "display_name": f"{r['away_abbrev']}@{r['home_abbrev']} {formatted_date}"
                 })
+                
             if player_rows:
                 r = player_rows[0]
                 game_date_str = str(r['game_timestamp']).split()[0]  
@@ -427,8 +245,9 @@ def answer(q: Q):
                     "game_id": int(r["game_id"]),
                    "display_name": f"{r['first_name']} {r['last_name']} {formatted_date}"
                 })
+        
+        # Add top game only as game evidence        
         else:
-            # Just add top game for game-only questions
             if game_rows:
                 r = game_rows[0]
                 game_date_str = str(r['game_timestamp']).split()[0]  
