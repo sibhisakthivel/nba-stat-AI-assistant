@@ -2,9 +2,50 @@
 
 Answer the questions listed in the Part 3 section of Submission Requirements. Do NOT use any AI tools for this section. Limit each response to 500 words or fewer.
 
-1. 
+1. My approach to part 1 focused on understanding how data flowed from ingestion to retrieval and optimizing each step to improve response accuracy while maintaining speed.
+Before this project, I’d never built anything involving RAG or NLP, so I began by studying each backend file to understand its purpose. I spent time learning about vector 
+embeddings and retrieval pipelines, which helped me avoid inefficient embedding and extraction methods. 
 
-2.
+Once I had a solid foundation, I focused on improving the row embedding process. I realized that aligning row embeddings with question embeddings would be much easier if 
+I utilized details from other tables, not just the table I was currently embedding. My goal was to make the row text as informative yet minimal as possible to prevent 
+unnecessary words from impacting embedding alignment.
+
+While implementing rag.py, I faced extremely long Ollama runtimes. After testing, I identified two main causes: overly long context prompts and limited hardware capacity. 
+After condensing context length and freeing up system resources, response speed improved significantly.
+
+My initial retrieval accuracy was strong, as I was able to answer most of the 10 provided questions correctly. The main questions I had trouble with were the
+"leading scorer" questions. I observed that although I was retriving the correct game_details rows, I wasn't retrieving enough player_box_scores rows to ensure that 
+the leading scorer was included among them. I debated between embedding “leader” tags versus expanding retrieval for those "leader" type questions, and decided to implement 
+the latter for a cleaner design, trading slightly slower responses for much higher accuracy. Question 10 was another edge case due to date phrasing. I addressed it by including 
+a date phrase in the embedding that mirrored the format used in the question.
+
+Prompt engineering was iterative but relatively straightforward. I refined prompts to clarify the LLM's misunderstandings and enforce output formatting consistency.
+
+For Part 2, I had no prior frontend experience, so adapting to Angular was initially challenging. After exploring the repo structure, I really enjoyed designing and implementing 
+the chat interface. This was something that I’ve been meaning to implement into my own NBA data project, so feature ideas came naturally. It was also an interesting experience
+learning how to establish and debug the frontend-backend connection.
+
+In summary, I completed this project using an end-to-end optimization approach. I familiarized myself with, refined, and connected each component until the system performed 
+reliably. This approach helped me transform a set of unfamiliar tools into an effective, efficient pipeline.
+
+2. My technical skillset is centered on predictive modeling and data analysis/visualization using machine learning and deep learning frameworks, and statistical modeling 
+techniques. My work also requires proficiency in data handling, cleaning, and filtering using SQL. My experience with this (especially working with NBA game and player data in my 
+own projects) allowed me to come into this project with deep understanding of the tables and data I was provided, and to naturally identify how I could optimally utilize this 
+data to improve the RAG, embedding, and backend pipelines.
+
+Additionally, my prior experience developing a multi-agent LLM system also prepared me for this project’s prompt engineering and output control challenges. Through that project, 
+I became comfortable analyzing how models interpret instructions, identifying sources of error or misalignment, and iteratively adjusting prompts to improve reliability. It also 
+taught me how to handle unwanted or inconsistent responses by adding structural constraints, refining contextual phrasing, or reordering system instructions to guide the model toward 
+consistent and accurate outputs. These skills transferred directly to this project, especially when tuning prompts for retrieval reasoning and output formatting.
+
+This project taught me how to design NLP applications through RAG pipelines and gave me a clearer understanding of how embedding vectors are created, stored, and retrieved 
+for contextual reasoning. It also exposed me to new areas of software development, such as integrating backend systems with a frontend interface, which helped strengthen my 
+full-stack engineering foundation. I also learned more about how local LLMs operate, the limitations my machine imposes on them, and how to manage the resulting long runtimes. 
+During these challenges, I adapted by  parsing each question to dynamically adjust the context size, ensuring faster responses without including unnecessary data or irrelevant context.
+
+Moving forward, I hope to deepen my understanding of the techniques I implemented in this project, particularly RAG pipelines, embedding optimization, and efficient context retrieval. 
+I plan to apply these skills to my NBA player performance modeling work by deploying and benchmarking LLMs in a production-like environment to automate and scale insight generation.
+I also want to explore how these same techniques can be optimized for larger, more complex datasets and more challenging retrieval contexts.
 
 3.
 
