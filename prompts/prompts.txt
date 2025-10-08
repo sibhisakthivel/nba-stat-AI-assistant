@@ -4,21 +4,30 @@ Part 1: ChatGPT 5 Instant
 
 Overview and Design:
 
-
+- Review and breakdown the attached project overview and instructions 
+- Describe and outline the purpose and structure of each file in the backend section of the repo
+- What exactly is a RAG pipeline? How is it related to NLP? What is embedding and where does it fit into this process?
+- For the purpose of completing part 1, does ingest.py need to be modified at all?
 
 embed.py:
 
-
+- Draft a SQL query that joins the players, teams, and player_box_scores tables onto the game_details table, table schemas below:
+- Draft a SQL query that joins the players, teams, and game_details tables onto the player_box_scores table, table schemas below:
+- Give me feedback on my game and player row text functions that are going to be embedded with the goal of aligned with question prompt embeddings, lmk if you have any suggestions
+- How can I generate different date formats using the game_timestamp data so my embeddings align with questions that use diverse date formats
+- Write a SQL query that checks if there are any player_ids in player_box_scores that aren't in the players table
+- 
 
 rag.py:
 
-
+- 
 
 Part 2: Claude Opus 4.1
 
 Overview and Design:
 
-
+- 
 
 Implementation:
 
+- 
