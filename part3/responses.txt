@@ -28,6 +28,8 @@ learning how to establish and debug the frontend-backend connection.
 In summary, I completed this project using an end-to-end optimization approach. I familiarized myself with, refined, and connected each component until the system performed 
 reliably. This approach helped me transform a set of unfamiliar tools into an effective, efficient pipeline.
 
+
+
 2. My technical skillset is centered on predictive modeling and data analysis/visualization using machine learning and deep learning frameworks, and statistical modeling 
 techniques. My work also requires proficiency in data handling, cleaning, and filtering using SQL. My experience with this (especially working with NBA game and player data in my 
 own projects) allowed me to come into this project with deep understanding of the tables and data I was provided, and to naturally identify how I could optimally utilize this 
@@ -47,6 +49,8 @@ Moving forward, I hope to deepen my understanding of the techniques I implemente
 I plan to apply these skills to my NBA player performance modeling work by deploying and benchmarking LLMs in a production-like environment to automate and scale insight generation.
 I also want to explore how these same techniques can be optimized for larger, more complex datasets and more challenging retrieval contexts.
 
+
+
 3. Sub-possession level data shows on how teams carry out individual plays, providing specific insights on player movement patterns, decision timing, and spacing. This data is valuable as 
 analyzing it allows us to determine several features that impact in-game strategy decisions.
 
@@ -61,6 +65,29 @@ play types that specific opponents struggle defending against, we could adjust o
 Finally, I would use this data to explore individual player success from specific positions or in specific roles within a play. Not only would this identify how a player can be used optimally on the
 court in a game, but it would highlight areas of weakness to prioritize during practice.
 
-4.
+
+
+4. This deeply detailed player positional tracking data provides a perspective on the game that traditional statistics and tracking systems cannot capture. By transforming this data into 
+interpretable performance metrics, we can generate insights that inform player development, injury prevention, and in-game strategic decision-making.
+
+The first feature I'd implement would focus on identifying movement patterns that suggest an incoming injury. I'd analyze the historical data to recognize movement patterns that have been observed 
+prior to injury instances, such as degraded posture, reduced movement speed, or delayed reaction time. By comparing these pre-injury patterns with baseline healthy movement sequences, I could 
+isolate movement indicators that signal elevated injury risk. I would model this using a sequence-based deep learning architecture such as an LSTM, which would recognize changes in movement pattern 
+within the large-scale dataset. I would utilize Spark for data preprocessing and feature extraction, and perform model training and evaluation through PyTorch. The model would output an injury risk 
+rating for each major joint of each modeled player. This feature would allow the medical team to take precautions and adjust recovery practices for each player accordingly.
+
+The second feature I’d implement would focus on detecting and quantifying player fatigue in real time based on changes in movement quality. I would analyze patterns such as increased stance height, 
+slower lateral reactions, and reduced arm extension during defensive contests. By monitoring these changes over time and comparing them to baseline movement behavior from the beginning of games, 
+a model could identify early signs of fatigue before it reaches a point where a player negatively affects the game. I would model this using sliding window sequence analysis to capture short-term 
+changes in movement behavior, while Spark would manage the large-scale streaming data and PyTorch would handle model training and inference. The model would output a fatigue rating for each player 
+that updates dynamically throughout the game. This feature would allow coaches to make informed substitution decisions, optimize rotation timing, and track conditioning progress throughout the season.
+
+The third feature I'd implement would rate a player's ability to create space on offense or close space as a defender. I would analyze the data to measure relative positioning between offensive and 
+defensive players. On offense, these metrics would demonstrate how effectively a player creates separation from defenders, and on defense, they would measure a player's ability to stay in front of their
+opponent while keeping pressure on them and preventing positional advancement. I would model these interactions using spatial-temporal analysis techniques to track how spacing changes across possessions.
+Spark would be used for large-scale data processing, and PyTorch would handle model training and evaluation. The model would output a “space efficiency” rating for each player's offense and defense, 
+allowing coaches to evaluate matchups, lineup fit, and individual player movement tendencies. 
+
+
 
 5. 
