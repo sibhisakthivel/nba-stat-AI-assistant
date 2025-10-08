@@ -15,15 +15,21 @@ embed.py:
 - Draft a SQL query that joins the players, teams, and game_details tables onto the player_box_scores table, table schemas below:
 - Give me feedback on my game and player row text function outputs that are going to be embedded with the goal of aligned with question prompt embeddings, lmk if you have any suggestions:
 - How can I generate different date formats using the game_timestamp data so my embeddings align with questions that use diverse date formats
-- Write a SQL query that checks if there are any player_ids in player_box_scores that aren't in the players table
+- Write a SQL query that checks if there are any player_ids in player_box_scores that aren't in the players table, because it says there are 29k rows to embed but there are 36k rows in player_box_scores
 - How do I optimize embedding speed when using Ollama’s nomic-embed-text model locally?
 - Should I embed each player row separately or join player and game info before embedding?
+- Are my row text function outputs optimal for embedding alignment? Do you have any suggestions to improve them?
+- Should I include all player stats for row embedding? Or just common ones like points, rebs, and assists?
+- Is it appropriate to use details from other tables when embedding rows?
+- Add print statements to track how many rows are left to embed
+- Can I make it so that embeddings are saved even if I don't let the entire program finish running?
 
 rag.py:
 
 - For the "leading scorer" questions, even though the right game rows are being retrieved, we're not retrieving enough player rows to ensure that the leading scorer of the entire game is actually being
 returned. Should we increase the number of rows we retrieve as context? Or do you have any other ideas for how we can handle this?
 - Draft a helper function that parses the question prompt for phrases indicating that the question requests a stat leader
+- What are commmon phrases that we should look for when parsing the question to see if it's a leader type question?
 - Draft a helper function that parses the question prompt for which individual stats are being requested. We'll use it to expand player context dynmically so that the LLM doesn'y have to parse through
 extra information it might not need
 - Draft an LLM prompt for the answer() func that enforces proper output formatting
@@ -33,12 +39,16 @@ extra information it might not need
 - Why is my LLM runtime so long, and how can I reduce context length without losing accuracy?
 - Help me decide on the number of rows to retrieve for both tables to balance accuracy and runtime
 - How can I shorten context length while preserving key details for the LLM?
+- Write a debug print block that logs which rows are being retrieved for each question
+- How can I extract the `result` field of each question from answers_template.json to provide to the LLM for output formatting context?
+- For player_box_scores evidence rows, should I provide player_id AND game_id as evidence? Since player_id on its own isn't a primary key of player_box_scores
 
 Part 2: Claude Opus 4.1
 
 Overview and Design:
 
 - Review the frontend section of this repo, what are the main files I'm going to be editing to improve the chatbox UI?
+- What are the CSS, HTML, and TypeScript files each responsible for?
 - Which files in the repo are responsible for connecting the backend implementation with the frontend chatbox UI?
 - In the chatbox UI, I want to implement an evidence feature that visualizes player and game evidence used to answer question prompts. Can this be handled strictly through the frontend? Or do I need to
 implement it in a backend file?
