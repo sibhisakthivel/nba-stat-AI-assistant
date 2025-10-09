@@ -19,6 +19,11 @@ app.add_middleware(
 eng = sa.create_engine(DB_DSN)
 
 
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "NBA Stats API is running"}
+
+
 class Q(BaseModel):
     question: str
 
