@@ -1,31 +1,131 @@
-#  2025 Applied AI Engineer Internship Project
+# NBA Stats AI Chatbot  
 
-Your work must be your own and original. You may use AI tools to help aid your work if you include a single text file containing an ordered list of any AI prompts, along with the specific model queried (e.g. ChatGPT 5 Thinking) in the `prompts` directory. Do not include the AI's output.
+An end-to-end **Retrieval-Augmented Generation (RAG)** and **Natural Language Processing (NLP)** system designed to provide evidence-based answers to questions about NBA games and player performance.  
+This project combines **semantic embeddings**, **context retrieval**, and **language generation** to demonstrate how large language models (LLMs) can reason over structured sports data with verifiable accuracy.
 
-### Internship Program Disclosures
+### Overview  
+The NBA Stats RAG Chatbot is a fully containerized AI application that integrates **NLP-driven question understanding** with **database-grounded retrieval and reasoning**.  
+It connects a **PostgreSQL + pgvector** database, a **FastAPI backend**, and an **Angular frontend**, allowing users to ask natural-language basketball questions — such as  
+*“Who led the Celtics in scoring on Christmas Day?”* — and receive structured, evidence-backed answers drawn from actual NBA datasets.
 
-* You must be eligible to work in the United States to be able to qualify for this internship.
+Unlike generic chatbots, this system emphasizes **factual grounding and explainability** through evidence-linked outputs.  
+It demonstrates how NLP, embeddings, and retrieval architectures can support **sports analytics**, **data exploration**, and **interactive reporting**.
 
-* The pay for this internship is the greater of your local minimum wage and $13/hour.
+### Core Capabilities  
+- End-to-end **RAG pipeline** (ingest → embed → retrieve → generate)  
+- **NLP-powered query understanding** for natural-language basketball questions  
+- Semantic search using **Ollama’s `nomic-embed-text`** model with **pgvector** storage  
+- Evidence-linked LLM responses citing the exact database rows used  
+- Modular architecture for extension to other sports or structured datasets  
+- Frontend chat interface built with **Angular**, featuring an interactive evidence panel  
 
-* This application is for the purposes of an internship taking place in the Spring, Summer, or Fall of 2026.
+---
 
+## Architecture Overview  
 
-## Assignment: 
+The NBA Stats RAG Chatbot follows a modular full-stack architecture designed for efficiency, transparency, and scalability.  
+Each component of the system performs a specialized role in the **RAG (Retrieval-Augmented Generation)** pipeline.
 
-The goal of this project is to build an end-to-end RAG pipeline with an interactive chat interface for answering basic NBA stats questions.
+### Backend Components  
+- **Database (PostgreSQL + pgvector):**  
+  Stores structured NBA data (game details, player box scores) along with vector embeddings for semantic retrieval.  
+  Enables similarity search via the `pgvector` extension for fast cosine-distance queries.  
 
-1. Load data – Ingest CSVs related to NBA game information from the 2023-24 and 2024-25 seasons into PostgresSQL tables. Note this data is limited to only matchups involving at least one Western Conference team for size considerations.
-2. Create embeddings – Generate text embeddings with Ollama [`nomic-embed-text`](https://ollama.com/library/nomic-embed-text) and store them alongside the source rows.
-3. Retrieve and join – Perform semantic retrieval using the `pgvector` extension to find relevant game summaries, then join the matched embeddings back to the original structured table rows to provide factual context.
-4. Answer questions – Use Llama [`llama3.2:3b`](https://ollama.com/library/llama3.2:3b) to produce answers grounded on the retrieved data to the questions under the **Submission Requirements** section. If you find this model too large for your machine, feel free to use a smaller model and note this in your submission.
+- **Embedding Engine (Ollama):**  
+  Generates 768-dimensional embeddings using the `nomic-embed-text` model.  
+  These embeddings are used to semantically represent both question text and database rows for context matching.  
 
-**The data provided in this repository is proprietary and strictly confidential. It is provided exclusively for use within this technical project and must not be copied, shared, or distributed.**
+- **API Layer (FastAPI):**  
+  Acts as the bridge between the LLM and the database.  
+  Handles user requests, executes SQL retrieval queries, aggregates context, and invokes LLM generation.  
+  Endpoints are modularized for retrieval, embedding, and response generation.  
 
-## Quick Start: Part 1
-1) Install [`Docker Desktop`](https://www.docker.com/get-started/) and open it (to ensure the docker daemon is running).
-2) Clone this repository.
-3) Start services and pull models by running the following commands:
+- **LLM Reasoning (Ollama + Llama 3.2 3B):**  
+  Performs the generation step using RAG-based prompting.  
+  The LLM interprets retrieved evidence rows, synthesizes reasoning, and produces structured, evidence-linked answers.
+
+### Frontend Components  
+- **Angular Web Interface:**  
+  Provides a chat-based user experience for natural-language interaction.  
+  Implements asynchronous API calls to the FastAPI backend and renders responses with linked evidence.  
+  Includes UI elements for query history, evidence visualization, and chat session management.
+
+### Data Flow Summary  
+1. **User Query →** Sent from Angular frontend to FastAPI backend.  
+2. **Embedding & Retrieval →** Query is embedded via Ollama and matched against pgvector rows in PostgreSQL.  
+3. **Context Assembly →** Retrieved rows are formatted into structured context blocks.  
+4. **LLM Generation →** The model generates an answer grounded in retrieved evidence.  
+5. **Frontend Display →** Final response and evidence array are displayed interactively in the chat UI.
+
+---
+
+## Pipeline Design  
+
+The RAG pipeline is structured around four primary stages — **Ingest**, **Embed**, **Retrieve**, and **Generate** — with each stage implemented as a distinct backend module for clarity and modularity.
+
+### 1. Ingest  
+- Raw NBA CSV data (games, teams, players, box scores) is parsed and inserted into the PostgreSQL database.  
+- Each dataset is normalized to relational tables with primary keys (`game_id`, `player_id`) and indexed for efficient querying.  
+- Includes lightweight preprocessing such as date normalization, column renaming, and data-type enforcement.
+
+### 2. Embed  
+- Each database row (game-level or player-level) is embedded into a 768-dimensional vector using **Ollama’s `nomic-embed-text`** model.  
+- Embeddings are stored alongside source rows in **pgvector** for similarity search.  
+- Implemented batching and checkpointing to optimize performance across tens of thousands of rows.
+
+### 3. Retrieve  
+- For each incoming question, the text is embedded using the same model and compared to stored vectors via cosine similarity.  
+- Top-k (configurable, typically 5–8) most relevant rows are retrieved from both `game_details` and `player_box_scores` tables.  
+- Retrieved context is formatted into structured text blocks for model input.
+
+### 4. Generate  
+- The retrieved evidence is injected into a structured **RAG prompt template**, providing context for the **Llama 3.2 3B** model via **Ollama**.  
+- The model produces an evidence-linked natural-language answer.  
+- Each response includes an `answer` field and an `evidence` array referencing the source table and row IDs.
+
+### 5. Output Integration  
+- The FastAPI backend serializes the LLM output as JSON and returns it to the Angular frontend.  
+- The UI parses the evidence array to display contextual statistics alongside the generated answer.  
+
+This modular design allows each stage (data ingestion, embedding, retrieval, or generation) to be developed, tested, or replaced independently — ensuring extensibility and reproducibility.
+
+---
+
+## Quick Start / Local Setup  
+
+The project is fully containerized using **Docker Compose** for seamless local deployment of all services — database, embedding engine, backend API, and frontend UI.
+
+### Prerequisites  
+Make sure the following are installed on your system:  
+
+- [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)  
+- [Python 3.11+](https://www.python.org/downloads/)  
+- [Node.js 18+](https://nodejs.org/en/download/) and [Angular CLI](https://angular.io/cli)  
+- [Ollama](https://ollama.com/) — for hosting the local embedding and LLM models
+
+### 1. Clone and Configure  
+
+Clone the repository and navigate into the project directory:  
+```bash
+git clone https://github.com/sibhisakthivel/nba-stat-ai-assistant.git
+cd nba-stat-ai-assistant
+```
+
+Create a `.env` file in the project root with the following configuration variables:  
+
+```bash
+DB_DSN=postgresql+psycopg2://postgres:postgres@db:5432/nba
+EMBED_MODEL=nomic-embed-text
+LLM_MODEL=llama3.2:3b
+```
+
+These environment variables define database connectivity and model selections for both embedding and generation stages.
+
+### 2. Start the Core Services  
+
+Start the required containers and initialize your local database and embeddings.
+
+Launch PostgreSQL and Ollama containers:  
 ```bash
 docker compose up -d db ollama
 docker exec ollama ollama pull nomic-embed-text
@@ -33,89 +133,153 @@ docker exec ollama ollama pull llama3.2:3b
 docker compose build app
 ```
 
-
-Edit these files and run them using the following commands:
-
-1) Ingestion (`backend/ingest.py`) for schema details
-```
+Initialize the database with game and player data:
+```bash
 docker compose run --rm app python -m backend.ingest
 ```
 
-2) Embedding (`backend/embed.py`) for text serialization strategy. **Note the embedding process can take a long time to complete depending on your machine**
-```
+Generate embeddings for all database rows:
+```bash
 docker compose run --rm app python -m backend.embed
 ```
 
-3) RAG Script (`backend/rag.py`) for retrieval joins, prompt, and answer formatting. This script generates answers to the 10 prompts in Part 1.
-```
-docker compose run --rm app python -m backend.rag
-```
+These steps populate the PostgreSQL instance and attach vector embeddings for semantic retrieval.
 
-## Quick Start: Part 2
+### 3. Launch the Backend  
 
-### Run the backend server
-```
+Start the **FastAPI** server to handle embedding, retrieval, and generation requests:  
+
+```bash
 docker compose run --rm --service-ports app uvicorn backend.server:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Installing Prerequisites
-Install Node.js (16.x.x), then in a new tab, run the following commands
-```
-cd /path/to/project/frontend
-# Install Angular-Cli
+Once running, the backend API will be available at:
+http://localhost:8000/api/chat
+
+You can test the API directly using curl or any HTTP client such as Postman or Insomnia.
+
+### 4. Launch the Frontend  
+
+Run the **Angular** development server to start the chat interface:  
+
+```bash
+cd frontend
 npm install -g @angular/cli@15.1.0 typescript@4.9.4 --force
-# Install dependencies
 npm install --force
-# Start the frontend
 npm start
 ```
 
-The frontend should run on http://localhost:4200/. Visit this address to see the app in your browser.
+### 🧠 5. Ask Questions  
 
+Once both the backend and frontend are running, you can query the chatbot directly from the UI or through the API.
 
-## Submission Requirements
+Example API query:  
+```bash
+curl -X POST http://localhost:8000/api/chat \
+     -H "Content-Type: application/json" \
+     -d '{"question": "Who scored the most points for the Lakers on December 25, 2023?"}'
+```
 
-Before starting with the project, __please fill out the [`SUBMISSION.md`](SUBMISSION.md) file__ to ensure we have your name and email address you applied to the role with.
+The response includes:
 
-**Part 1: RAG Backend**
+- A generated natural-language answer from the LLM
+- An evidence array listing the database rows used for retrieval
 
-- Answer the 10 game-level prompts in [`part1/questions.json`](part1/questions.json) using your retrieval pipeline and record results in a new file named [`answers.json`](part1/answers.json) by simply running the command for the [`rag.py`](backend/rag.py) file. Each answer should include an `evidence` array listing the `game_details` or `player_box_scores` rows used in the response.
+Example response structure:
+```bash
+{
+  "answer": "LeBron James scored 34 points for the Lakers on December 25, 2023.",
+  "evidence": [
+    {"table": "player_box_scores", "id": 22300126},
+    {"table": "game_details", "id": 22300087}
+  ]
+}
+```
 
+This ensures every response is traceable and grounded in real statistical data.
 
-**Part 2: Frontend Solution**
+### 6. Service Summary  
 
-- Create a chat interface for interacting with the backend retrieval pipeline. Some minimal Angular skeleton code is provided in the [`frontend/src/app`](frontend/src/app) directory, feel free to edit it as you wish.
+| Component | Description | Port |
+|------------|--------------|------|
+| **PostgreSQL + pgvector** | Structured database for NBA data and semantic embeddings | `5432` |
+| **Ollama** | Local embedding and LLM inference engine | `11434` |
+| **FastAPI** | Backend API for retrieval and response generation | `8000` |
+| **Angular** | Frontend chat interface for interactive querying | `4200` |
 
-Submit a video in the [`part2`](part2) folder that demonstrates how your UI functions.
+Once all services are running, open your browser to **[http://localhost:4200](http://localhost:4200)** to begin interacting with the chatbot.  
+You can ask natural-language questions about NBA games, and each response will display the underlying **evidence rows** used to generate the answer.
 
+---
 
-**Part 3: Writeup**
+## Features & Capabilities  
 
-Note: for this particular section, we **strongly** suggest you avoid using any AI tools to answer any of these questions. We want these responses to be your own voice and show your true understanding of the content. Please limit each response to 500 words or fewer.
+The NBA Stats RAG Chatbot demonstrates how modern **NLP** and **retrieval-augmented generation (RAG)** techniques can be applied to structured sports data.  
+Each feature was designed to improve accuracy, interpretability, and user interactivity.
 
-1. Discuss your approach to answering the questions in Parts 1 and 2. Include your experimental process in regards to data preparation, embedding design, retrieval, prompt engineering, user experience, etc. Describe any challenges you faced and how you overcame them.
+### Core Features  
+- **RAG Pipeline Architecture** – integrates retrieval, embedding, and LLM reasoning into a unified workflow.  
+- **Semantic Search** – retrieves relevant game and player records using cosine similarity on pgvector embeddings.  
+- **Evidence-Based Answers** – every response cites the database rows used for reasoning, ensuring transparency and verifiability.  
+- **FastAPI Backend** – modularized endpoints for embedding, retrieval, and generation, supporting extensibility and experimentation.  
+- **Angular Frontend** – interactive chat interface with a live evidence visualization panel.  
+- **Local LLM Hosting** – fully offline execution using **Ollama** with `llama3.2:3b` and `nomic-embed-text` models.  
 
-2. Describe your technical skillset and how it relates to the questions answered in this assignment. What did you learn as you went through this assignment, and what do you hope to learn in these related areas?
+### Technical Highlights  
+- **PostgreSQL + pgvector** used for scalable semantic retrieval across tens of thousands of NBA data rows.  
+- **Efficient batching and progress tracking** for large-scale embedding generation.  
+- **Prompt optimization and structured output formatting** for consistent LLM responses.  
+- **Docker-based orchestration** for reproducible, multi-service local deployment.  
 
-3. You have data at the sub-possession level capturing basic events like passes, screens, and drives with court coordinates for the ball as well as all 10 players on the court. Describe any ways you would explore this data to answer in-game strategy questions.
+These capabilities collectively enable a transparent, self-contained AI system that answers factual basketball questions with interpretable reasoning — a prototype for scalable, domain-specific RAG systems.
 
-4. You have [player positional tracking data](https://pr.nba.com/nba-sony-hawk-eye-innovations-partnership/); assume 29 skeletal points per player (e.g. joints like left shoulder, right knee, right ankle, etc), sampled at 60 frames per second for the full game. How you would harness this high-dimensional data to generate actionable insights for Basketball Operations? Propose three new features, describe how you’d explore the data, and note which technologies you’d apply.
+## Deployment & Engineering Notes  
 
-5. You have a large text corpus, including scouting reports, internal notes, and other documents that define decision constraints for Basketball Operations. How would you design an end-to-end process to turn this into findings to support front-office decision-making?  Describe your technical strategies (e.g., NLP, embeddings, retrieval, LLMs), including data representation, analysis, validation, and integration into workflows.
+This section documents the end-to-end deployment process, engineering design choices, and practical challenges encountered while developing and running the NBA Stats RAG Chatbot.
 
+### Deployment Stack & Workflow  
+The system was deployed locally using **Docker Compose**, enabling isolated orchestration of all services.  
+- **PostgreSQL (with pgvector):** persistent data and embedding storage  
+- **Ollama service:** local LLM and embedding model host  
+- **FastAPI backend:** handles ingestion, embedding, retrieval, and generation logic  
+- **Angular frontend:** runs independently in a local development server, consuming the backend API  
 
-Put your responses to the questions in Part 3 in [`part3/responses.txt`](part3/responses.txt).
+Each service runs in a dedicated container and communicates through Docker’s internal network, providing full portability and environment reproducibility.
 
+### Engineering Process  
+The development process emphasized modularity, transparency, and testability:
+- Designed clear separation between *data ingestion*, *embedding*, and *generation* modules.  
+- Added progress logging and batching during embedding to handle tens of thousands of rows efficiently.  
+- Integrated environment variables for model configuration (`EMBED_MODEL`, `LLM_MODEL`) to enable quick model swaps.  
+- Implemented structured JSON responses for better frontend parsing and evidence visualization.
 
-## Optional
+### Challenges Faced & Solutions  
 
-**Part 4: Embedding Fine-Tuning**
-- Build a small dataset of question–context pairs about NBA games and fine-tune the Hugging Face [`intfloat/e5-base-v2`](https://huggingface.co/intfloat/e5-base-v2) model. [`Text Embeddings by Weakly-Supervised Contrastive Pre-training`](https://arxiv.org/pdf/2212.03533) (Wang et al., 2022) shows how E5's contrastive objective yields strong universal embeddings, making it a good candidate for customization.
+| Challenge | Description | Solution |
+|------------|--------------|-----------|
+| **Embedding Runtime** | Large dataset embedding was slow due to unbatched requests. | Introduced batch processing (500 rows/batch) with progress tracking. |
+| **LLM Response Latency** | Initial model inference was slow due to heavy context size. | Reduced context size and optimized prompt templates. |
+| **Evidence Alignment** | Some responses referenced incorrect rows. | Improved retrieval ranking logic and post-filtering based on date/team match. |
+| **Frontend-Backend Sync** | API endpoints needed cross-origin access for Angular. | Configured CORS middleware in FastAPI. |
 
-1. Assemble training data – Create at least 20 question–context pairs from the game summaries in this repo (or generate synthetic ones). Each pair should contain a question and a short text snippet that answers it.
-2. Fine-tune an embedding model – Start from the encoder and train it with contrastive learning so matching question/context pairs obtain high cosine similarity. Log the training configuration and any hyperparameters you change.
-3. Evaluate retrieval – Compare your fine-tuned model against the baseline `nomic-embed-text` using a held-out set of queries. Report metrics such as Recall@k or MRR.
-4. Document results – Summarize your approach, hyperparameters, and evaluation numbers in [`part4/responses.txt`](part4/responses.txt). Include any code or commands used to run the experiment.
+### Optimization Highlights  
+- Streamlined SQL queries for retrieval to minimize redundant vector comparisons.  
+- Added automatic retry logic for embedding failures.  
+- Introduced clear separation of evidence and context blocks to simplify model reasoning.  
+- Tuned Angular rendering for faster chat updates.  
 
-Put all relevant files in the [`part4`](part4) folder in this repository.
-Note that this part of the project is optional. We do not expect every applicant to complete this portion. 
+### Future Improvements  
+Planned extensions to further enhance accuracy, scalability, and usability:
+- **Cloud Deployment:** containerize the full stack for AWS ECS or Azure Web Apps.  
+- **Evaluation Dashboard:** visualize retrieval accuracy and evidence coverage using Streamlit or Dash.  
+- **Hybrid Vector Search:** integrate FAISS or Weaviate for faster large-scale retrieval.  
+- **Multi-Model Support:** experiment with other embedding and generation models via environment toggles.  
+- **User Analytics Layer:** log queries, latency, and model performance for iterative fine-tuning.  
+
+### Author  
+**Sibhi Sakthivel**  
+M.S. Molecular Science & Software Engineering, UC Berkeley  
+sibhisak@gmail.com
+sibhisakthivel@berkeley.edu 
+[LinkedIn](https://www.linkedin.com/in/sibhi-sakthivel-3ab23113b)
+[GitHub](https://github.com/sibhisakthivel)
