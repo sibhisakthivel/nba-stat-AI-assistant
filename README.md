@@ -276,6 +276,49 @@ Planned extensions to further enhance accuracy, scalability, and usability:
 - **Multi-Model Support:** experiment with other embedding and generation models via environment toggles.  
 - **User Analytics Layer:** log queries, latency, and model performance for iterative fine-tuning.  
 
+---
+
+## Deployment Expansion and Runtime Challenges
+
+After completing the initial local implementation, the project was extended to explore **cloud deployment and hosted inference** workflows.  
+This phase aimed to evaluate how the RAG chatbot performs under production constraints and to identify the trade-offs between local and hosted LLM architectures.
+
+### 1. Migration from Ollama → Grok API (Groq)
+The first major update involved replacing local inference through **Ollama** with hosted LLM calls to **Grok** (via the `GROQ_API_KEY`).  
+This change enabled easier remote deployment, lighter containers, and compatibility with Render’s limited resource tiers while maintaining semantic retrieval through pgvector.
+
+### 2. Backend Deployment on Render
+The FastAPI backend was containerized and deployed to **Render**, using a managed PostgreSQL instance for persistent storage.  
+Render simplified the build process but imposed key constraints on the free tier:
+- **512 MB memory cap** often caused inference and embedding jobs to fail mid-execution.  
+- **Automatic sleep after inactivity** resulted in 30–60 s cold-start delays on the first user request.  
+- **Request timeouts** occasionally interrupted long-running LLM responses.  
+
+Despite these limitations, Render proved useful for rapid iteration and API endpoint validation.
+
+### 3. Frontend Deployment on Vercel
+The Angular frontend was successfully deployed to **Vercel**, integrated with the live Render backend API.  
+This allowed browser-based querying of the deployed RAG pipeline and testing of full client–server interactions in a hosted environment.
+
+### 4. Runtime and Model Performance
+Across both local and hosted versions, **response latency** remained the most significant challenge.  
+Typical end-to-end query times ranged from **30–60 seconds**, primarily due to:
+- Long similarity-search computations in pgvector over large datasets.  
+- LLM generation overhead for multi-row evidence synthesis.  
+- Cold-start delays and memory constraints on free-tier infrastructure.  
+
+These experiments highlighted the practical limitations of running RAG pipelines on low-resource environments and motivated future optimizations, including:
+- Asynchronous inference and streaming responses.  
+- Persistent service tiers to eliminate cold starts.  
+- Model distillation or smaller-context fine-tuning for faster reasoning.
+
+> **Next Steps**  
+> - Evaluate higher-memory tiers or GPU-accelerated hosting for consistent uptime.  
+> - Introduce caching layers for repeated queries and embeddings.  
+> - Continue profiling long-running Grok/Ollama responses to balance speed and accuracy.
+
+---
+
 ### Author  
 **Sibhi Sakthivel**  
 M.S. Molecular Science & Software Engineering, UC Berkeley  
