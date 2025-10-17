@@ -3,6 +3,14 @@
 An end-to-end **Retrieval-Augmented Generation (RAG)** and **Natural Language Processing (NLP)** system designed to provide evidence-based answers to questions about NBA games and player performance.  
 This project combines **semantic embeddings**, **context retrieval**, and **language generation** to demonstrate how large language models (LLMs) can reason over structured sports data with verifiable accuracy.
 
+## Video Demo
+
+<p align="center">
+  <video src="assets/rag_chatbot_demo.mp4" width="80%" controls>
+    Your browser does not support the video tag.
+  </video>
+</p>
+
 ### Overview  
 The NBA Stats RAG Chatbot is a fully containerized AI application that integrates **NLP-driven question understanding** with **database-grounded retrieval and reasoning**.  
 It connects a **PostgreSQL + pgvector** database, a **FastAPI backend**, and an **Angular frontend**, allowing users to ask natural-language basketball questions — such as  
