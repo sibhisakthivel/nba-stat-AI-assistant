@@ -5,7 +5,9 @@ This project combines **semantic embeddings**, **context retrieval**, and **lang
 
 ## Video Demo
 
-[![Watch the demo](https://img.shields.io/badge/🎬%20Watch%20Demo-Click%20Here-blue)](assets/rag_chatbot_demo.mp4)
+Experience the NBA Stat AI Assistant in action — watch the full interactive RAG Chatbot demo (with evidence pinning and contextual retrieval):
+
+🔗 **[View Demo Here](https://sibhisakthivel.github.io/nba-stat-AI-assistant/)**  
 
 ### Overview  
 The NBA Stats RAG Chatbot is a fully containerized AI application that integrates **NLP-driven question understanding** with **database-grounded retrieval and reasoning**.  
