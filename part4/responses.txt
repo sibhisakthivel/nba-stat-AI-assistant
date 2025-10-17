@@ -1,3 +1,0 @@
-##### Part 4: Embedding Fine-Tuning (optional)
-
-Document your approach to solving this problem in this file. Summarize your approach, hyperparameters, and evaluation methods.
