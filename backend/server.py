@@ -11,12 +11,18 @@ from datetime import datetime
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],
+    # allow_origins=["http://localhost:4200"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 eng = sa.create_engine(DB_DSN)
+
+
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "NBA Stats API is running"}
 
 
 class Q(BaseModel):
