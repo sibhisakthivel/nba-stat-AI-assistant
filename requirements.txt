@@ -10,5 +10,3 @@ orjson
 pydantic
 transformers
 torch
-groq
-sentence-transformers
